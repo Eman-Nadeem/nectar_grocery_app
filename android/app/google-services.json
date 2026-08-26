@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "229303395627",
+    "project_id": "testing-cli-ceb7e",
+    "storage_bucket": "testing-cli-ceb7e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:229303395627:android:8777eca8845ce1039e516e",
+        "android_client_info": {
+          "package_name": "com.emannadeem.nectar_grocery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTPpr5S8o2x5hV2lDFqLKGqScjum1XZBw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
