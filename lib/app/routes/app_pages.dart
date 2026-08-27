@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:nectar_grocery/app/modules/home/bindings/home_bindings.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/auth/views/signup_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
@@ -36,7 +37,7 @@ class AppPages {
     GetPage(
       name: Routes.home,
       page: () => const HomeView(),
-      binding: AuthBinding(),
+      binding: HomeBinding(),
     ),
   ];
 }
