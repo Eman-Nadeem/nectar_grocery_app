@@ -12,13 +12,9 @@ class AdminView extends GetView<AdminController> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Obx(
-          () => Text(
-            controller.editingProduct.value == null
-                ? 'Add New Product'
-                : 'Edit Product',
-            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          ),
+        title: const Text(
+          'Admin Catalog',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -27,126 +23,226 @@ class AdminView extends GetView<AdminController> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.primary),
-            onPressed: controller.clearForm,
+            onPressed: controller.loadAllProducts,
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Add Product', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: () {
+          controller.clearForm();
+          _showProductFormBottomSheet(context);
+        },
+      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Image Picker Box
-              _buildImagePicker(),
-              const SizedBox(height: 20),
+        child: Obx(() {
+          if (controller.isLoading.value && controller.allProducts.isEmpty) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+          }
 
-              // 2. Input Fields
-              _buildTextField('Product Name', controller.nameController, 'e.g. Organic Bananas'),
-              const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField('Price (\$)', controller.priceController, 'e.g. 4.99', isNumber: true),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: _buildTextField('Unit / Quantity', controller.unitController, 'e.g. 1kg, Price'),
-                  ),
-                ],
+          if (controller.allProducts.isEmpty) {
+            return const Center(
+              child: Text(
+                'No products in catalog.\nTap "+ Add Product" to create one!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
               ),
-              const SizedBox(height: 15),
+            );
+          }
 
-              // 3. Category Selector Dropdown
-              const Text(
-                'Category',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Obx(
-                () => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
+          return ListView.separated(
+            padding: const EdgeInsets.all(20),
+            itemCount: controller.allProducts.length,
+            separatorBuilder: (context, index) => const Divider(),
+            itemBuilder: (context, index) {
+              final product = controller.allProducts[index];
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(vertical: 5),
+                leading: Container(
+                  width: 55,
+                  height: 55,
                   decoration: BoxDecoration(
                     color: AppColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: controller.selectedCategory.value,
-                      items: controller.categoriesList.map((cat) {
-                        return DropdownMenuItem(
-                          value: cat,
-                          child: Text(cat.capitalizeFirst ?? cat),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) controller.selectedCategory.value = val;
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: product.imageUrl.startsWith('http')
+                        ? Image.network(product.imageUrl, fit: BoxFit.cover)
+                        : const Icon(Icons.shopping_basket, color: AppColors.primary),
+                  ),
+                ),
+                title: Text(
+                  product.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                subtitle: Text(
+                  '\$${product.price.toStringAsFixed(2)} • ${product.unit} • ${product.category}',
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                      onPressed: () {
+                        controller.setProductToEdit(product);
+                        _showProductFormBottomSheet(context);
                       },
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              _buildTextField('Description', controller.descriptionController, 'Enter product description...', maxLines: 3),
-              const SizedBox(height: 15),
-
-              // 4. Feature Toggles
-              Obx(
-                () => SwitchListTile(
-                  activeThumbColor: AppColors.primary,
-                  title: const Text('Exclusive Offer', style: TextStyle(fontWeight: FontWeight.w600)),
-                  value: controller.isExclusive.value,
-                  onChanged: (val) => controller.isExclusive.value = val,
-                ),
-              ),
-              Obx(
-                () => SwitchListTile(
-                  activeThumbColor: AppColors.primary,
-                  title: const Text('Best Selling Item', style: TextStyle(fontWeight: FontWeight.w600)),
-                  value: controller.isBestSelling.value,
-                  onChanged: (val) => controller.isBestSelling.value = val,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 5. Save Button
-              Obx(
-                () => SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () => controller.confirmDeleteProduct(product),
                     ),
-                    onPressed: controller.isLoading.value ? null : controller.saveProduct,
-                    child: controller.isLoading.value
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                            controller.editingProduct.value == null ? 'Add Product' : 'Update Product',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
+                  ],
+                ),
+              );
+            },
+          );
+        }),
+      ),
+    );
+  }
+
+  /// Opens the Modal Bottom Sheet Overlay Form for Add / Edit
+  void _showProductFormBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Obx(
+                      () => Text(
+                        controller.editingProduct.value == null ? 'Add New Product' : 'Edit Product',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+
+                // Image Picker Box
+                _buildImagePicker(),
+                const SizedBox(height: 15),
+
+                // Product Name Field
+                _buildTextField('Product Name', controller.nameController, 'e.g. Organic Bananas'),
+                const SizedBox(height: 15),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField('Price (\$)', controller.priceController, 'e.g. 4.99', isNumber: true),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: _buildTextField('Unit / Quantity', controller.unitController, 'e.g. 1kg, Price'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+
+                // Category Dropdown
+                const Text('Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 8),
+                Obx(
+                  () => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: controller.selectedCategory.value,
+                        items: controller.categoriesList.map((cat) {
+                          return DropdownMenuItem(
+                            value: cat,
+                            child: Text(cat.capitalizeFirst ?? cat),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) controller.selectedCategory.value = val;
+                        },
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 15),
 
-              const SizedBox(height: 35),
-              const Divider(),
-              const SizedBox(height: 15),
+                _buildTextField('Description', controller.descriptionController, 'Enter product description...', maxLines: 2),
+                const SizedBox(height: 10),
 
-              // 6. Manage Existing Products List
-              const Text(
-                'Existing Products Catalog',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 15),
-              _buildProductList(),
-            ],
+                // Toggles
+                Obx(
+                  () => SwitchListTile(
+                    activeThumbColor: AppColors.primary,
+                    title: const Text('Exclusive Offer', style: TextStyle(fontWeight: FontWeight.w600)),
+                    value: controller.isExclusive.value,
+                    onChanged: (val) => controller.isExclusive.value = val,
+                  ),
+                ),
+                Obx(
+                  () => SwitchListTile(
+                    activeThumbColor: AppColors.primary,
+                    title: const Text('Best Selling Item', style: TextStyle(fontWeight: FontWeight.w600)),
+                    value: controller.isBestSelling.value,
+                    onChanged: (val) => controller.isBestSelling.value = val,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Save Button (Triggers Confirmation Dialog)
+                Obx(
+                  () => SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      ),
+                      onPressed: controller.isLoading.value ? null : controller.confirmSaveProduct,
+                      child: controller.isLoading.value
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              controller.editingProduct.value == null ? 'Save Product' : 'Update Product',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 25),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -158,7 +254,7 @@ class AdminView extends GetView<AdminController> {
         final String currentUrl = controller.currentImageUrl.value;
 
         return Container(
-          height: 150,
+          height: 130,
           width: double.infinity,
           decoration: BoxDecoration(
             color: AppColors.cardBackground,
@@ -178,9 +274,9 @@ class AdminView extends GetView<AdminController> {
                   : const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_a_photo_outlined, size: 40, color: AppColors.primary),
-                        SizedBox(height: 8),
-                        Text('Tap to pick product image', style: TextStyle(color: AppColors.textSecondary)),
+                        Icon(Icons.add_a_photo_outlined, size: 36, color: AppColors.primary),
+                        SizedBox(height: 6),
+                        Text('Tap to pick product image', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                       ],
                     ),
         );
@@ -213,47 +309,5 @@ class AdminView extends GetView<AdminController> {
         ),
       ],
     );
-  }
-
-  Widget _buildProductList() {
-    return Obx(() {
-      if (controller.allProducts.isEmpty) {
-        return const Center(child: Text('No products found in Firestore catalog'));
-      }
-
-      return ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: controller.allProducts.length,
-        separatorBuilder: (context, index) => const Divider(),
-        itemBuilder: (context, index) {
-          final product = controller.allProducts[index];
-          return ListTile(
-            leading: SizedBox(
-              width: 50,
-              height: 50,
-              child: product.imageUrl.startsWith('http')
-                  ? Image.network(product.imageUrl, fit: BoxFit.cover)
-                  : const Icon(Icons.shopping_basket, color: AppColors.primary),
-            ),
-            title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('\$${product.price.toStringAsFixed(2)} - ${product.category}'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => controller.setProductToEdit(product),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => controller.deleteProduct(product),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    });
   }
 }

@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:nectar_grocery/app/components/grocery_category_card.dart';
 import 'package:nectar_grocery/app/components/product_card.dart';
 import 'package:nectar_grocery/app/modules/home/controllers/home_controller.dart';
-import 'package:nectar_grocery/app/routes/app_routes.dart';
+import 'package:nectar_grocery/app/modules/profile/views/profile_view.dart';
 import 'package:nectar_grocery/app/utils/app_colors.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -15,6 +15,10 @@ class HomeView extends GetView<HomeController> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Obx(() {
+          if (controller.currentNavIndex.value == 4) {
+            return ProfileView();
+          }
+
           if (controller.isLoading.value) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
@@ -76,7 +80,10 @@ class HomeView extends GetView<HomeController> {
           backgroundColor: Colors.white,
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.textPrimary,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           items: const [
             BottomNavigationBarItem(
@@ -110,55 +117,38 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-    // Header Widget (Logo + Location Pin + Admin Button)
+    // Header Widget (Logo + Location Pin)
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Column(
-            children: [
-              Center(
-                child: Image.asset(
-                  'assets/icons/orange_carrot.png',
-                  height: 30,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.shopping_basket,
-                    color: AppColors.primary,
-                    size: 30,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.location_on, color: Color(0xFF4C4F4D), size: 20),
-                  SizedBox(width: 5),
-                  Text(
-                    'Dhaka, Banassre',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4C4F4D),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: IconButton(
-              icon: const Icon(Icons.admin_panel_settings, color: AppColors.primary, size: 28),
-              tooltip: 'Admin Dashboard',
-              onPressed: () => Get.toNamed(Routes.admin),
+    return Column(
+      children: [
+        Center(
+          child: Image.asset(
+            'assets/icons/orange_carrot.png',
+            height: 30,
+            errorBuilder: (context, error, stackTrace) => const Icon(
+              Icons.shopping_basket,
+              color: AppColors.primary,
+              size: 30,
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.location_on, color: Color(0xFF4C4F4D), size: 20),
+            SizedBox(width: 5),
+            Text(
+              'Dhaka, Banassre',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4C4F4D),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -199,10 +189,7 @@ class HomeView extends GetView<HomeController> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
-            colors: [
-              Colors.green.shade100,
-              Colors.orange.shade50,
-            ],
+            colors: [Colors.green.shade100, Colors.orange.shade50],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -219,7 +206,8 @@ class HomeView extends GetView<HomeController> {
                   'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500',
                   fit: BoxFit.cover,
                   width: 120,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox(),
                 ),
               ),
             ),

@@ -6,6 +6,7 @@ import 'package:nectar_grocery/app/data/models/product_model.dart';
 import 'package:nectar_grocery/app/data/repositories/product_repository.dart';
 import 'package:nectar_grocery/app/data/repositories/storage_repository.dart';
 import 'package:nectar_grocery/app/modules/home/controllers/home_controller.dart';
+import 'package:nectar_grocery/app/utils/app_colors.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class AdminController extends GetxController {
@@ -21,7 +22,7 @@ class AdminController extends GetxController {
   final priceController = TextEditingController();
   final unitController = TextEditingController();
   final descriptionController = TextEditingController();
-  
+
   // Toggles & Selection
   final RxString selectedCategory = 'groceries'.obs;
   final RxBool isExclusive = false.obs;
@@ -68,8 +69,103 @@ class AdminController extends GetxController {
         selectedImageFile.value = File(pickedFile.path);
       }
     } catch (e) {
-      Utils.toastMessage('Error picking image: $e', backgroundColor: Colors.red);
+      Utils.toastMessage(
+        'Error picking image: $e',
+        backgroundColor: Colors.red,
+      );
     }
+  }
+
+  /// Confirmation dialog before saving product
+  void confirmSaveProduct() {
+    final name = nameController.text.trim();
+    final priceText = priceController.text.trim();
+    final unit = unitController.text.trim();
+
+    if (name.isEmpty || priceText.isEmpty || unit.isEmpty) {
+      Utils.toastMessage(
+        'Please fill in Name, Price, and Unit',
+        backgroundColor: Colors.orange,
+      );
+      return;
+    }
+
+    final double? price = double.tryParse(priceText);
+    if (price == null) {
+      Utils.toastMessage(
+        'Please enter a valid price number',
+        backgroundColor: Colors.orange,
+      );
+      return;
+    }
+
+    final isEditing = editingProduct.value != null;
+    final title = isEditing ? 'Update Product' : 'Add New Product';
+    final message = isEditing
+        ? 'Are you sure you want to save changes to "$name"?'
+        : 'Are you sure you want to add "$name" to the catalog?';
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Get.back(); // Close dialog
+              saveProduct(); // Execute save
+            },
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Confirmation dialog before deleting product
+  void confirmDeleteProduct(ProductModel product) {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text(
+          'Delete Product',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${product.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Get.back(); // Close dialog
+              deleteProduct(product); // Execute delete
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Populate form to edit an existing product
@@ -108,13 +204,19 @@ class AdminController extends GetxController {
     final description = descriptionController.text.trim();
 
     if (name.isEmpty || priceText.isEmpty || unit.isEmpty) {
-      Utils.toastMessage('Please fill in Name, Price, and Unit', backgroundColor: Colors.orange);
+      Utils.toastMessage(
+        'Please fill in Name, Price, and Unit',
+        backgroundColor: Colors.orange,
+      );
       return;
     }
 
     final double? price = double.tryParse(priceText);
     if (price == null) {
-      Utils.toastMessage('Please enter a valid price number', backgroundColor: Colors.orange);
+      Utils.toastMessage(
+        'Please enter a valid price number',
+        backgroundColor: Colors.orange,
+      );
       return;
     }
 
@@ -124,7 +226,8 @@ class AdminController extends GetxController {
     // Upload image to Firebase Storage if a new image file was selected
     if (selectedImageFile.value != null) {
       isUploadingImage.value = true;
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${name.replaceAll(' ', '_')}';
+      final fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${name.replaceAll(' ', '_')}';
       final uploadedUrl = await _storageRepository.uploadProductImage(
         selectedImageFile.value!,
         fileName,
@@ -165,6 +268,7 @@ class AdminController extends GetxController {
       if (Get.isRegistered<HomeController>()) {
         Get.find<HomeController>().fetchHomeData();
       }
+      Get.back();
     }
 
     isLoading.value = false;
