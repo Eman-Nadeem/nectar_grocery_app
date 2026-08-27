@@ -12,7 +12,7 @@ class SplashController extends GetxController {
   }
 
   void _checkUserAuthStatus(){
-    Future.delayed(const Duration(seconds: 3), (){
+    Future.delayed(const Duration(seconds: 5), (){
       final user = _auth.currentUser;
       if (user != null) {
         Get.offAllNamed(Routes.home);

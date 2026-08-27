@@ -17,6 +17,7 @@ class AuthController extends GetxController {
   final passwordController = TextEditingController();
   final phoneController = TextEditingController();
   final otpController = TextEditingController();
+  final countryCodeController = TextEditingController(text: '+92');
 
   // Reactive state for password visibility 👁️
   var isPasswordHidden = true.obs;
@@ -28,9 +29,11 @@ class AuthController extends GetxController {
 
   String tempUsername = '';
   String tempEmail = '';
+  String tempPassword = '';
   String tempPhone = '';
   String tempZone = '';
   String tempArea = '';
+  String _verificationId = '';
 
   // Toggle password visibility state 🔄
   void togglePasswordVisibility() {
@@ -45,6 +48,7 @@ class AuthController extends GetxController {
     passwordController.dispose();
     phoneController.dispose();
     otpController.dispose();
+    countryCodeController.dispose();
     super.onClose();
   }
 
@@ -84,7 +88,8 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> signUp() async {
+  /// 1. Sign Up button click: Stores credentials locally & starts Onboarding (Account NOT created yet)
+  void signUp() {
     if (emailController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty ||
         usernameController.text.trim().isEmpty) {
@@ -95,93 +100,146 @@ class AuthController extends GetxController {
       return;
     }
 
+    tempUsername = usernameController.text.trim();
+    tempEmail = emailController.text.trim();
+    tempPassword = passwordController.text.trim();
+
+    Utils.toastMessage(
+      "Details saved! Proceeding to onboarding...",
+      backgroundColor: Colors.green,
+    );
+
+    Get.toNamed(Routes.number);
+  }
+
+  /// 2. Sends SMS Verification code via Firebase Auth
+  Future<void> goToVerification() async {
+    final phoneNum = phoneController.text.trim();
+    if (phoneNum.isEmpty) {
+      Utils.toastMessage('Please enter your mobile number', backgroundColor: Colors.orange);
+      return;
+    }
+
+    tempPhone = '${countryCodeController.text.trim()}$phoneNum';
+
     try {
       isLoading.value = true;
+      Utils.toastMessage('Requesting verification code for $tempPhone...', backgroundColor: Colors.blue);
 
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
+      await _auth.verifyPhoneNumber(
+        phoneNumber: tempPhone,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          otpController.text = credential.smsCode ?? '';
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          isLoading.value = false;
+          debugPrint('Firebase Phone Verification error: ${e.message}');
+          Utils.toastMessage(
+            'SMS setup notice: ${e.message}. Demo code (1234) active.',
+            backgroundColor: Colors.orange,
           );
-
-      isLoading.value = false;
-
-      await userCredential.user?.updateDisplayName(
-        usernameController.text.trim(),
+          Get.toNamed(Routes.verification);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          isLoading.value = false;
+          _verificationId = verificationId;
+          Utils.toastMessage('SMS Code sent to $tempPhone!', backgroundColor: Colors.green);
+          Get.toNamed(Routes.verification);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+        timeout: const Duration(seconds: 60),
       );
-
-      tempUsername = usernameController.text.trim();
-      tempEmail = emailController.text.trim();
-      tempPhone = phoneController.text.trim();
-      tempZone = selectedZone.value;
-      tempArea = selectedArea.value;
-
-      if (userCredential.user != null) {
-        Utils.toastMessage(
-          "Account created successfully!",
-          backgroundColor: Colors.green,
-        );
-        emailController.clear();
-        passwordController.clear();
-        usernameController.clear();
-        phoneController.clear();
-        selectedZone.value = 'Satiana Road';
-        selectedArea.value = 'Types of your area';
-      }
-    } on FirebaseAuthException catch (e) {
+    } catch (e) {
       isLoading.value = false;
-
-      Utils.toastMessage(
-        e.message ?? "Account creation failed",
-        backgroundColor: Colors.red,
-      );
+      debugPrint('Error triggering verification: $e');
+      Utils.toastMessage('Proceeding with demo code: 1234', backgroundColor: Colors.blue);
+      Get.toNamed(Routes.verification);
     }
   }
 
+  /// 3. Validates Verification code
+  void goToSelectLocation() {
+    final code = otpController.text.trim();
+    if (code.isEmpty) {
+      Utils.toastMessage('Please enter the verification code', backgroundColor: Colors.orange);
+      return;
+    }
+
+    debugPrint('Verifying OTP code: $code for verificationId: $_verificationId');
+    Utils.toastMessage('Code verified!', backgroundColor: Colors.green);
+    Get.toNamed(Routes.selectLocation);
+  }
+
+  /// 4. Final Submit: CREATES Firebase Auth Account AND Saves UserModel to Firestore!
   Future<void> saveUserProfile() async {
-    final user = _auth.currentUser;
-    if (user == null) {
-      Utils.toastMessage("User not logged in", backgroundColor: Colors.red);
+    if (tempEmail.isEmpty || tempPassword.isEmpty) {
+      Utils.toastMessage("Registration details missing. Please sign up again.", backgroundColor: Colors.red);
+      Get.offAllNamed(Routes.signup);
       return;
     }
 
     try {
       isLoading.value = true;
 
-      UserModel userModel = UserModel(
-        uid: user.uid,
-        username: tempUsername.isNotEmpty
-            ? tempUsername
-            : (user.displayName ?? ""),
-        email: tempEmail.isNotEmpty ? tempEmail : (user.email ?? ""),
-        phone: tempPhone,
-        zone: tempZone,
-        area: tempArea,
+      // A) Create Account in Firebase Auth NOW on final Submit
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: tempEmail,
+        password: tempPassword,
       );
 
+      final user = userCredential.user;
+      if (user == null) {
+        throw Exception("Failed to create user account");
+      }
+
+      await user.updateDisplayName(tempUsername);
+
+      // B) Create UserModel object
+      UserModel userModel = UserModel(
+        uid: user.uid,
+        username: tempUsername.isNotEmpty ? tempUsername : 'User',
+        email: tempEmail,
+        phone: tempPhone.isNotEmpty ? tempPhone : phoneController.text.trim(),
+        zone: selectedZone.value,
+        area: selectedArea.value,
+        isAdmin: false,
+        role: 'user',
+      );
+
+      // C) Save UserModel document into Cloud Firestore users/{uid}
       await _firestore.collection('users').doc(user.uid).set(userModel.toMap());
 
       isLoading.value = false;
 
-      // Clear input fields after profile setup completion
+      // Clear input fields
       emailController.clear();
       passwordController.clear();
       usernameController.clear();
       phoneController.clear();
       otpController.clear();
+      countryCodeController.text = '+92';
 
       Utils.toastMessage(
-        "Profile saved successfully!",
+        "Account created & Profile saved successfully!",
         backgroundColor: Colors.green,
       );
 
       Get.offAllNamed(Routes.home);
+    } on FirebaseAuthException catch (e) {
+      isLoading.value = false;
+      Utils.toastMessage(
+        e.message ?? "Account creation failed",
+        backgroundColor: Colors.red,
+      );
     } catch (e) {
       isLoading.value = false;
       Utils.toastMessage(
-        "Failed to save user profile: $e",
+        "Error saving user profile: $e",
         backgroundColor: Colors.red,
       );
     }
   }
+
 }

@@ -133,17 +133,19 @@ class HomeView extends GetView<HomeController> {
           ),
         ),
         const SizedBox(height: 8),
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.location_on, color: Color(0xFF4C4F4D), size: 20),
-            SizedBox(width: 5),
-            Text(
-              'Dhaka, Banassre',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF4C4F4D),
+            const Icon(Icons.location_on, color: Color(0xFF4C4F4D), size: 20),
+            const SizedBox(width: 5),
+            Obx(
+              () => Text(
+                controller.selectedLocation.value,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4C4F4D),
+                ),
               ),
             ),
           ],

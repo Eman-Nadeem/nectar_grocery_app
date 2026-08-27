@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/state_manager.dart';
 import 'package:nectar_grocery/app/data/models/category_model.dart';
@@ -10,6 +12,7 @@ class HomeController extends GetxController {
 
   final RxBool isLoading = true.obs;
   final RxInt currentNavIndex = 0.obs;
+  final RxString selectedLocation = 'Dhaka, Banasree'.obs;
 
   final RxList<ProductModel> exclusiveProducts = <ProductModel>[].obs;
   final RxList<ProductModel> bestSelling = <ProductModel>[].obs;
@@ -72,6 +75,30 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     fetchHomeData();
+    loadUserLocation();
+  }
+
+  /// Fetches saved zone & area from Firestore users collection
+  Future<void> loadUserLocation() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          final zone = data['zone'] ?? '';
+          final area = data['area'] ?? '';
+
+          if (zone.isNotEmpty && area.isNotEmpty && area != 'Types of your area') {
+            selectedLocation.value = '$zone, $area';
+          } else if (zone.isNotEmpty) {
+            selectedLocation.value = zone;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading user location: $e');
+      }
+    }
   }
 
   //fetch all home data
