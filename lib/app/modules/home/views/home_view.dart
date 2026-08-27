@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:nectar_grocery/app/components/grocery_category_card.dart';
 import 'package:nectar_grocery/app/components/product_card.dart';
 import 'package:nectar_grocery/app/modules/home/controllers/home_controller.dart';
+import 'package:nectar_grocery/app/routes/app_routes.dart';
 import 'package:nectar_grocery/app/utils/app_colors.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -109,40 +110,58 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // Header Widget (Logo + Location Pin)
+    // Header Widget (Logo + Location Pin + Admin Button)
   Widget _buildHeader() {
-    return Column(
-      children: [
-        Center(
-          child: Image.asset(
-            'assets/icons/orange_carrot.png',
-            height: 30,
-            errorBuilder: (context, error, stackTrace) => const Icon(
-              Icons.shopping_basket,
-              color: AppColors.primary,
-              size: 30,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Column(
+            children: [
+              Center(
+                child: Image.asset(
+                  'assets/icons/orange_carrot.png',
+                  height: 30,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.shopping_basket,
+                    color: AppColors.primary,
+                    size: 30,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.location_on, color: Color(0xFF4C4F4D), size: 20),
+                  SizedBox(width: 5),
+                  Text(
+                    'Dhaka, Banassre',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF4C4F4D),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Positioned(
+            right: 0,
+            top: 0,
+            child: IconButton(
+              icon: const Icon(Icons.admin_panel_settings, color: AppColors.primary, size: 28),
+              tooltip: 'Admin Dashboard',
+              onPressed: () => Get.toNamed(Routes.admin),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.location_on, color: Color(0xFF4C4F4D), size: 20),
-            SizedBox(width: 5),
-            Text(
-              'Dhaka, Banassre',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF4C4F4D),
-              ),
-            ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
+
 
   // Search Bar Widget
   Widget _buildSearchBar() {

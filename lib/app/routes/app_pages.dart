@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:nectar_grocery/app/modules/admin/bindings/admin_binding.dart';
+import 'package:nectar_grocery/app/modules/admin/views/admin_view.dart';
 import 'package:nectar_grocery/app/modules/home/bindings/home_bindings.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/auth/views/signup_view.dart';
@@ -38,6 +40,11 @@ class AppPages {
       name: Routes.home,
       page: () => const HomeView(),
       binding: HomeBinding(),
+    ),
+    GetPage(
+      name: Routes.admin,
+      page: () => const AdminView(),
+      binding: AdminBinding(),
     ),
   ];
 }
