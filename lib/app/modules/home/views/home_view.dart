@@ -347,7 +347,7 @@ class HomeView extends GetView<HomeController> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 35),
 
                       // 1. Exclusive Offer Section
                       _buildSectionHeader('Exclusive Offer', () {
@@ -367,16 +367,16 @@ class HomeView extends GetView<HomeController> {
 
                       const SizedBox(height: 25),
 
-                      // 3. Groceries Section
+                      // 3. Groceries Section & All Products Grid
                       _buildSectionHeader('Groceries', () {
                         controller.changeNavIndex(1);
                       }),
                       const SizedBox(height: 15),
                       _buildCategoryList(),
-                      const SizedBox(height: 15),
-                      Obx(() => _buildHorizontalProductList(controller.groceryProducts)),
+                      const SizedBox(height: 20),
+                      Obx(() => _buildAllProductsGrid(controller.allProducts)),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 35),
                     ],
                   ),
                 );
@@ -440,6 +440,38 @@ class HomeView extends GetView<HomeController> {
           );
         },
       ),
+    );
+  }
+
+  /// 2-Column Grid View to display ALL products regardless of category
+  Widget _buildAllProductsGrid(List<ProductModel> products) {
+    if (products.isEmpty) {
+      return const SizedBox(
+        height: 100,
+        child: Center(
+          child: Text('No products available.', style: TextStyle(color: AppColors.textSecondary)),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: products.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.70,
+        crossAxisSpacing: 15,
+        mainAxisSpacing: 15,
+      ),
+      itemBuilder: (context, index) {
+        final product = products[index];
+        return ProductCard(
+          product: product,
+          onTap: () => Get.toNamed(Routes.productDetails, arguments: product),
+          onAddToCart: () => controller.addToCart(product),
+        );
+      },
     );
   }
 

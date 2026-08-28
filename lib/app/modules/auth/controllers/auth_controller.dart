@@ -5,7 +5,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/modules/home/controllers/home_controller.dart';
-import '../../../data/models/user_models.dart';
+import 'package:nectar_grocery/app/modules/profile/controllers/profile_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/utils.dart';
 
@@ -70,7 +70,10 @@ class AuthController extends GetxController {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          Utils.toastMessage('Location permission was denied. Please select from dropdown.', backgroundColor: Colors.orange);
+          Utils.toastMessage(
+            'Location permission was denied. Please select from dropdown.',
+            backgroundColor: Colors.orange,
+          );
           return;
         }
       }
@@ -94,7 +97,9 @@ class AuthController extends GetxController {
           ),
         );
       } catch (e) {
-        debugPrint('getCurrentPosition failed: $e. Trying last known position...');
+        debugPrint(
+          'getCurrentPosition failed: $e. Trying last known position...',
+        );
         position = await Geolocator.getLastKnownPosition();
       }
 
@@ -117,20 +122,27 @@ class AuthController extends GetxController {
           String zone = place.locality?.isNotEmpty == true
               ? place.locality!
               : (place.subAdministrativeArea?.isNotEmpty == true
-                  ? place.subAdministrativeArea!
-                  : (place.administrativeArea?.isNotEmpty == true ? place.administrativeArea! : 'Satiana Road'));
+                    ? place.subAdministrativeArea!
+                    : (place.administrativeArea?.isNotEmpty == true
+                          ? place.administrativeArea!
+                          : 'Satiana Road'));
 
           // Resolve Area
           String area = place.subLocality?.isNotEmpty == true
               ? place.subLocality!
               : (place.thoroughfare?.isNotEmpty == true
-                  ? place.thoroughfare!
-                  : (place.name?.isNotEmpty == true ? place.name! : 'Block A'));
+                    ? place.thoroughfare!
+                    : (place.name?.isNotEmpty == true
+                          ? place.name!
+                          : 'Block A'));
 
           selectedZone.value = zone;
           selectedArea.value = area;
 
-          Utils.toastMessage('GPS Location Detected: $zone, $area', backgroundColor: Colors.green);
+          Utils.toastMessage(
+            'GPS Location Detected: $zone, $area',
+            backgroundColor: Colors.green,
+          );
         } else {
           // Fallback if reverse geocoding is unavailable
           final zone = 'Lat ${position.latitude.toStringAsFixed(2)}';
@@ -157,7 +169,10 @@ class AuthController extends GetxController {
           backgroundColor: Colors.orange,
         );
       } else {
-        Utils.toastMessage('Location request timed out. Please select from dropdown.', backgroundColor: Colors.orange);
+        Utils.toastMessage(
+          'Location request timed out. Please select from dropdown.',
+          backgroundColor: Colors.orange,
+        );
       }
     } finally {
       isLoading.value = false;
@@ -165,8 +180,12 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
-    if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
-      Utils.toastMessage('Please enter email and password', backgroundColor: Colors.red);
+    if (emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      Utils.toastMessage(
+        'Please enter email and password',
+        backgroundColor: Colors.red,
+      );
       return;
     }
 
@@ -183,7 +202,10 @@ class AuthController extends GetxController {
         Get.offAllNamed(Routes.home);
       }
     } on FirebaseAuthException catch (e) {
-      Utils.toastMessage(e.message ?? 'Login failed', backgroundColor: Colors.red);
+      Utils.toastMessage(
+        e.message ?? 'Login failed',
+        backgroundColor: Colors.red,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -199,7 +221,10 @@ class AuthController extends GetxController {
     if (usernameController.text.trim().isEmpty ||
         emailController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty) {
-      Utils.toastMessage('Please fill in all fields', backgroundColor: Colors.orange);
+      Utils.toastMessage(
+        'Please fill in all fields',
+        backgroundColor: Colors.orange,
+      );
       return;
     }
     saveTempRegistrationData();
@@ -215,12 +240,16 @@ class AuthController extends GetxController {
   }
 
   void saveTempPhoneData() {
-    tempPhone = '${countryCodeController.text.trim()}${phoneController.text.trim()}';
+    tempPhone =
+        '${countryCodeController.text.trim()}${phoneController.text.trim()}';
   }
 
   Future<void> sendOtp() async {
     if (phoneController.text.trim().isEmpty) {
-      Utils.toastMessage('Please enter a valid phone number', backgroundColor: Colors.red);
+      Utils.toastMessage(
+        'Please enter a valid phone number',
+        backgroundColor: Colors.red,
+      );
       return;
     }
 
@@ -236,12 +265,18 @@ class AuthController extends GetxController {
       },
       verificationFailed: (FirebaseAuthException e) {
         isLoading.value = false;
-        Utils.toastMessage('Phone verification failed: ${e.message}', backgroundColor: Colors.red);
+        Utils.toastMessage(
+          'Phone verification failed: ${e.message}',
+          backgroundColor: Colors.red,
+        );
       },
       codeSent: (String verificationId, int? resendToken) {
         _verificationId = verificationId;
         isLoading.value = false;
-        Utils.toastMessage('OTP sent to $tempPhone', backgroundColor: Colors.green);
+        Utils.toastMessage(
+          'OTP sent to $tempPhone',
+          backgroundColor: Colors.green,
+        );
         Get.toNamed(Routes.verification);
       },
       codeAutoRetrievalTimeout: (String verificationId) {
@@ -252,7 +287,10 @@ class AuthController extends GetxController {
 
   Future<void> verifyOtp() async {
     if (otpController.text.trim().length < 4) {
-      Utils.toastMessage('Please enter valid 4-digit code', backgroundColor: Colors.red);
+      Utils.toastMessage(
+        'Please enter valid 4-digit code',
+        backgroundColor: Colors.red,
+      );
       return;
     }
 
@@ -268,7 +306,10 @@ class AuthController extends GetxController {
       Get.toNamed(Routes.selectLocation);
     } on FirebaseAuthException catch (e) {
       isLoading.value = false;
-      Utils.toastMessage(e.message ?? 'Invalid OTP Code', backgroundColor: Colors.red);
+      Utils.toastMessage(
+        e.message ?? 'Invalid OTP Code',
+        backgroundColor: Colors.red,
+      );
     }
   }
 
@@ -277,40 +318,78 @@ class AuthController extends GetxController {
       isLoading.value = true;
       User? currentUser = _auth.currentUser;
 
-      if (currentUser == null && tempEmail.isNotEmpty && tempPassword.isNotEmpty) {
-        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-          email: tempEmail,
-          password: tempPassword,
-        ).timeout(const Duration(seconds: 8));
+      if (currentUser == null &&
+          tempEmail.isNotEmpty &&
+          tempPassword.isNotEmpty) {
+        UserCredential userCredential = await _auth
+            .createUserWithEmailAndPassword(
+              email: tempEmail,
+              password: tempPassword,
+            )
+            .timeout(const Duration(seconds: 8));
         currentUser = userCredential.user;
       }
 
       if (currentUser != null) {
-        UserModel newUser = UserModel(
-          uid: currentUser.uid,
-          username: tempUsername.isNotEmpty ? tempUsername : (currentUser.displayName ?? 'User'),
-          email: currentUser.email ?? tempEmail,
-          phone: tempPhone.isNotEmpty ? tempPhone : (currentUser.phoneNumber ?? ''),
-          zone: selectedZone.value,
-          area: selectedArea.value,
-        );
+        final userDocRef = _firestore.collection('users').doc(currentUser.uid);
+        DocumentSnapshot? existingDoc;
+        try {
+          existingDoc = await userDocRef.get().timeout(
+            const Duration(seconds: 4),
+          );
+        } catch (e) {
+          debugPrint('Error fetching existing user doc: $e');
+        }
 
-        await _firestore
-            .collection('users')
-            .doc(currentUser.uid)
-            .set(newUser.toMap(), SetOptions(merge: true))
+        Map<String, dynamic> updateData = {
+          'zone': selectedZone.value,
+          'area': selectedArea.value,
+          'updatedAt': DateTime.now().toIso8601String(),
+        };
+
+        if (existingDoc != null &&
+            existingDoc.exists &&
+            existingDoc.data() != null) {
+          // Existing user doc: Only update non-empty fields to preserve isAdmin, role, phone, username
+          if (tempUsername.isNotEmpty) updateData['username'] = tempUsername;
+          if (tempPhone.isNotEmpty) updateData['phone'] = tempPhone;
+          if (tempEmail.isNotEmpty) updateData['email'] = tempEmail;
+        } else {
+          // New user document setup
+          updateData['uid'] = currentUser.uid;
+          updateData['username'] = tempUsername.isNotEmpty
+              ? tempUsername
+              : (currentUser.displayName ?? 'User');
+          updateData['email'] = currentUser.email ?? tempEmail;
+          updateData['phone'] = tempPhone.isNotEmpty
+              ? tempPhone
+              : (currentUser.phoneNumber ?? '');
+          updateData['isAdmin'] = false;
+          updateData['role'] = 'user';
+          updateData['createdAt'] = DateTime.now().toIso8601String();
+        }
+
+        await userDocRef
+            .set(updateData, SetOptions(merge: true))
             .timeout(const Duration(seconds: 6));
 
         if (Get.isRegistered<HomeController>()) {
           Get.find<HomeController>().loadUserLocation();
         }
+        if (Get.isRegistered<ProfileController>()) {
+          Get.find<ProfileController>().loadUserData();
+        }
 
-        Utils.toastMessage('Location & profile saved!', backgroundColor: Colors.green);
+        Utils.toastMessage(
+          'Location & profile saved!',
+          backgroundColor: Colors.green,
+        );
         Get.offAllNamed(Routes.home);
       } else {
         // Guest mode fallback so user can proceed directly to Home
         if (Get.isRegistered<HomeController>()) {
-          Get.find<HomeController>().selectedLocation.value = '${selectedZone.value}, ${selectedArea.value}';
+          Get.find<HomeController>().selectedLocation.value =
+              '${selectedZone.value}, ${selectedArea.value}';
         }
         Utils.toastMessage('Location saved!', backgroundColor: Colors.green);
         Get.offAllNamed(Routes.home);
@@ -319,7 +398,8 @@ class AuthController extends GetxController {
       debugPrint('Error saving profile: $e');
       // If network times out, navigate home gracefully
       if (Get.isRegistered<HomeController>()) {
-        Get.find<HomeController>().selectedLocation.value = '${selectedZone.value}, ${selectedArea.value}';
+        Get.find<HomeController>().selectedLocation.value =
+            '${selectedZone.value}, ${selectedArea.value}';
       }
       Get.offAllNamed(Routes.home);
     } finally {
