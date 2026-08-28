@@ -4,73 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/data/models/category_model.dart';
 import 'package:nectar_grocery/app/data/models/product_model.dart';
+import 'package:nectar_grocery/app/data/repositories/category_repository.dart';
 import 'package:nectar_grocery/app/data/repositories/product_repository.dart';
 import 'package:nectar_grocery/app/modules/cart/controllers/cart_controller.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class HomeController extends GetxController {
   final ProductRepository _productRepository = ProductRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
 
   final RxBool isLoading = true.obs;
   final RxInt currentNavIndex = 0.obs;
-  final RxString selectedLocation = 'Dhaka, Banasree'.obs;
+  final RxString selectedLocation = ' '.obs;
 
+  final searchController = TextEditingController();
+  final RxString searchQuery = ''.obs;
+
+  final RxList<ProductModel> allProducts = <ProductModel>[].obs;
   final RxList<ProductModel> exclusiveProducts = <ProductModel>[].obs;
   final RxList<ProductModel> bestSelling = <ProductModel>[].obs;
   final RxList<ProductModel> groceryProducts = <ProductModel>[].obs;
-
-
- // list of categories for home screen
-  final List<CategoryModel> categories = [
-    CategoryModel(
-      id: '1',
-      name: 'pulses',
-      imageUrl: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e2?w=500',
-      backgroundColor: const Color(0xFFFEF6ED),
-    ),
-    CategoryModel(
-      id: '2',
-      name: 'Rice',
-      imageUrl: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500',
-      backgroundColor: const Color(0xFFE6F7ED),
-    ),
-    CategoryModel(
-      id: '3',
-      name: 'Nuts',
-      imageUrl: 'https://images.unsplash.com/photo-1526685162656-2cc652040199?w=500',
-      backgroundColor: const Color(0xFFFEF6ED),
-    ),
-    CategoryModel(
-      id: '4',
-      name: 'Oil',
-      imageUrl: 'https://images.unsplash.com/photo-1558403171-06e8c4f18f56?w=500',
-      backgroundColor: const Color(0xFFE6F7ED),
-    ),
-    CategoryModel(
-      id: '5',
-      name: 'Salt',
-      imageUrl: 'https://images.unsplash.com/photo-1578350481918-32d714777069?w=500',
-      backgroundColor: const Color(0xFFFEF6ED),
-    ),
-    CategoryModel(
-      id: '6',
-      name: 'Flour',
-      imageUrl: 'https://images.unsplash.com/photo-1558403171-06e8c4f18f56?w=500',
-      backgroundColor: const Color(0xFFFEF6ED),
-    ),
-    CategoryModel(
-      id: '7',
-      name: 'Sugar',
-      imageUrl: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e2?w=500',
-      backgroundColor: const Color(0xFFFEF6ED),
-    ),
-    CategoryModel(
-      id: '8',
-      name: 'Tea',
-      imageUrl: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500',
-      backgroundColor: const Color(0xFFE6F7ED),
-    ),
-  ];
+  final RxList<CategoryModel> categoryList = <CategoryModel>[].obs;
 
   @override
   void onInit() {
@@ -84,13 +38,19 @@ class HomeController extends GetxController {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
           final zone = data['zone'] ?? '';
           final area = data['area'] ?? '';
 
-          if (zone.isNotEmpty && area.isNotEmpty && area != 'Types of your area') {
+          if (zone.isNotEmpty &&
+              area.isNotEmpty &&
+              area != 'Types of your area' &&
+              area != 'Select your area') {
             selectedLocation.value = '$zone, $area';
           } else if (zone.isNotEmpty) {
             selectedLocation.value = zone;
@@ -102,44 +62,59 @@ class HomeController extends GetxController {
     }
   }
 
-  //fetch all home data
+  // Fetch all home data strictly from Cloud Firestore
   Future<void> fetchHomeData() async {
     try {
       isLoading.value = true;
 
-      // Single-pass fetch for all products from Firestore
-      final allProducts = await _productRepository.getAllProducts();
+      final fetchedProducts = await _productRepository.getAllProducts();
+      final fetchedCategories = await _categoryRepository.getCategories();
 
-      final exclusive = allProducts.where((p) => p.isExclusive).toList();
-      final bestSellingProducts = allProducts.where((p) => p.isBestSelling).toList();
-      final groceries = allProducts.where((p) => p.category.toLowerCase() == 'groceries').toList();
+      allProducts.assignAll(fetchedProducts);
+      categoryList.assignAll(fetchedCategories);
 
-      // Prioritize real Firestore products over fallback items
-      if (allProducts.isNotEmpty) {
-        exclusiveProducts.assignAll(exclusive.isNotEmpty ? exclusive : allProducts);
-        bestSelling.assignAll(bestSellingProducts.isNotEmpty ? bestSellingProducts : allProducts);
-        groceryProducts.assignAll(groceries.isNotEmpty ? groceries : allProducts);
-      } else {
-        exclusiveProducts.assignAll(ProductRepository.fallbackProducts.where((p) => p.isExclusive).toList());
-        bestSelling.assignAll(ProductRepository.fallbackProducts.where((p) => p.isBestSelling).toList());
-        groceryProducts.assignAll(ProductRepository.fallbackProducts.where((p) => p.category == 'groceries').toList());
-      }
+      exclusiveProducts.assignAll(
+        fetchedProducts.where((p) => p.isExclusive).toList(),
+      );
+      bestSelling.assignAll(
+        fetchedProducts.where((p) => p.isBestSelling).toList(),
+      );
+      groceryProducts.assignAll(
+        fetchedProducts
+            .where((p) => p.category.toLowerCase() == 'groceries')
+            .toList(),
+      );
     } catch (e) {
       debugPrint('Error loading home data: $e');
-      exclusiveProducts.assignAll(ProductRepository.fallbackProducts.where((p) => p.isExclusive).toList());
-      bestSelling.assignAll(ProductRepository.fallbackProducts.where((p) => p.isBestSelling).toList());
-      groceryProducts.assignAll(ProductRepository.fallbackProducts.where((p) => p.category == 'groceries').toList());
     } finally {
       isLoading.value = false;
     }
   }
 
-  //change bottom navigation index
+  List<ProductModel> get searchResults {
+    final q = searchQuery.value.trim().toLowerCase();
+    if (q.isEmpty) return [];
+    return allProducts
+        .where(
+          (p) =>
+              p.name.toLowerCase().contains(q) ||
+              p.category.toLowerCase().contains(q) ||
+              p.description.toLowerCase().contains(q),
+        )
+        .toList();
+  }
+
+  void clearSearch() {
+    searchController.clear();
+    searchQuery.value = '';
+  }
+
+  // Change bottom navigation index
   void changeNavIndex(int index) {
     currentNavIndex.value = index;
   }
 
-  //Add product to cart
+  // Add product to cart
   void addToCart(ProductModel product) {
     if (Get.isRegistered<CartController>()) {
       Get.find<CartController>().addToCart(product);
@@ -149,5 +124,11 @@ class HomeController extends GetxController {
         backgroundColor: Colors.green,
       );
     }
+  }
+
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
   }
 }

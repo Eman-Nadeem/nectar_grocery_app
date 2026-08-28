@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:nectar_grocery/app/data/models/cart_item_model.dart';
 import 'package:nectar_grocery/app/modules/cart/controllers/cart_controller.dart';
 import 'package:nectar_grocery/app/utils/app_colors.dart';
-import 'package:nectar_grocery/app/utils/utils.dart';
 
 class CartView extends GetView<CartController> {
   const CartView({super.key});
@@ -92,12 +91,7 @@ class CartView extends GetView<CartController> {
                       ),
                       elevation: 0,
                     ),
-                    onPressed: () {
-                      Utils.toastMessage(
-                        'Proceeding to Checkout (${controller.cartItems.length} items)',
-                        backgroundColor: Colors.green,
-                      );
-                    },
+                    onPressed: () => _showCheckoutBottomSheet(context),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -139,12 +133,180 @@ class CartView extends GetView<CartController> {
     );
   }
 
+  // Checkout Bottom Sheet Matching Screenshot 1 Mockup
+  void _showCheckoutBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Top Title Bar with 'X' Close Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Checkout',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.textPrimary, size: 24),
+                    onPressed: () => Get.back(),
+                  ),
+                ],
+              ),
+              const Divider(height: 20, thickness: 1),
+
+              // Row 1: Delivery Method
+              _buildCheckoutRow(
+                label: 'Delivery',
+                trailing: 'Select Method',
+                onTap: () {},
+              ),
+              const Divider(height: 20, thickness: 1),
+
+              // Row 2: Payment Method
+              _buildCheckoutRow(
+                label: 'Payment',
+                trailingIcon: Icons.credit_card,
+                onTap: () {},
+              ),
+              const Divider(height: 20, thickness: 1),
+
+              // Row 3: Promo Code
+              _buildCheckoutRow(
+                label: 'Promo Code',
+                trailing: 'Pick discount',
+                onTap: () {},
+              ),
+              const Divider(height: 20, thickness: 1),
+
+              // Row 4: Total Cost
+              _buildCheckoutRow(
+                label: 'Total Cost',
+                trailing: '\$${controller.totalPrice.toStringAsFixed(2)}',
+                isBoldPrice: true,
+                onTap: () {},
+              ),
+              const Divider(height: 20, thickness: 1),
+
+              // Terms and Conditions Disclaimer
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: const TextSpan(
+                    text: 'By placing an order you agree to our ',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    children: [
+                      TextSpan(
+                        text: 'Terms And Conditions',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 25),
+
+              // Place Order Button
+              SizedBox(
+                width: double.infinity,
+                height: 67,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(19),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Get.back(); // Close bottom sheet
+                    controller.placeOrder(); // Execute order placement
+                  },
+                  child: const Text(
+                    'Place Order',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCheckoutRow({
+    required String label,
+    String? trailing,
+    IconData? trailingIcon,
+    bool isBoldPrice = false,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Row(
+              children: [
+                if (trailingIcon != null)
+                  Icon(trailingIcon, color: AppColors.primary, size: 20)
+                else if (trailing != null)
+                  Text(
+                    trailing,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: isBoldPrice ? FontWeight.bold : FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textPrimary),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Cart Item Tile Matching Design Mockup
   Widget _buildCartItemTile(CartItemModel item) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Product Thumbnail Image
         Container(
           width: 70,
           height: 70,
@@ -160,8 +322,6 @@ class CartView extends GetView<CartController> {
           ),
         ),
         const SizedBox(width: 20),
-
-        // Product Title, Unit & Quantity Selector
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,8 +343,6 @@ class CartView extends GetView<CartController> {
                 ),
               ),
               const SizedBox(height: 15),
-
-              // Quantity Selector Controls [ - ]  count  [ + ]
               Row(
                 children: [
                   _buildQuantityButton(
@@ -215,8 +373,6 @@ class CartView extends GetView<CartController> {
             ],
           ),
         ),
-
-        // Delete 'X' Button & Total Price
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [

@@ -1,7 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/data/models/cart_item_model.dart';
+import 'package:nectar_grocery/app/data/models/order_model.dart';
 import 'package:nectar_grocery/app/data/models/product_model.dart';
+import 'package:nectar_grocery/app/data/repositories/order_repository.dart';
+import 'package:nectar_grocery/app/modules/cart/views/order_accepted_view.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class CartController extends GetxController {
@@ -50,5 +54,43 @@ class CartController extends GetxController {
   /// Clear entire cart
   void clearCart() {
     cartItems.clear();
+  }
+
+  /// Place Order and save to Cloud Firestore orders collection
+  Future<void> placeOrder() async {
+    if (cartItems.isEmpty) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    final orderItems = cartItems
+        .map((item) => OrderItem(
+              productId: item.product.id,
+              productName: item.product.name,
+              price: item.product.price,
+              quantity: item.quantity,
+              imageUrl: item.product.imageUrl,
+            ))
+        .toList();
+
+    final newOrder = OrderModel(
+      id: '',
+      userId: user?.uid ?? 'guest',
+      userEmail: user?.email ?? 'guest@nectar.com',
+      items: orderItems,
+      totalAmount: totalPrice,
+      deliveryMethod: 'Select Method',
+      paymentMethod: 'Credit Card',
+      status: 'Accepted',
+      createdAt: DateTime.now(),
+    );
+
+    final OrderRepository orderRepo = OrderRepository();
+    final success = await orderRepo.createOrder(newOrder);
+
+    if (success) {
+      clearCart();
+      Get.to(() => const OrderAcceptedView());
+    } else {
+      Utils.toastMessage('Order creation failed. Please try again.', backgroundColor: Colors.red);
+    }
   }
 }

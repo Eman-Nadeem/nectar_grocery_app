@@ -6,12 +6,14 @@ class ProductCard extends StatelessWidget {
   final ProductModel product;
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
+  final VoidCallback? onAddPressed;
 
-  const ProductCard({ 
+  const ProductCard({
     super.key,
     required this.product,
     this.onTap,
     this.onAddToCart,
+    this.onAddPressed,
   });
 
   @override
@@ -28,17 +30,21 @@ class ProductCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Center(
-              child: SizedBox(
-                height: 80,
-                child: _buildProductImage(product.imageUrl),
+            // Prominent Full Image
+            Expanded(
+              child: Center(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: _buildProductImage(product.imageUrl),
+                ),
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
+            // Product Title
             Text(
               product.name,
               maxLines: 1,
@@ -49,20 +55,22 @@ class ProductCard extends StatelessWidget {
                 color: AppColors.textPrimary,
               ),
             ),
+            const SizedBox(height: 4),
 
+            // Unit Description
             Text(
               product.unit,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+              style: const TextStyle(
+                fontSize: 14,
                 color: AppColors.textSecondary,
               ),
             ),
 
             const SizedBox(height: 12),
 
+            // Price and Add Button
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -76,7 +84,7 @@ class ProductCard extends StatelessWidget {
                 ),
 
                 GestureDetector(
-                  onTap: onAddToCart,
+                  onTap: onAddToCart ?? onAddPressed,
                   child: Container(
                     height: 45,
                     width: 45,
@@ -102,37 +110,38 @@ class ProductCard extends StatelessWidget {
         fit: BoxFit.contain,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
-          return Container(
-            color: Colors.grey.shade100,
-            child: const Center(
-              child: Icon(
-                Icons.image_outlined,
-                color: AppColors.textSecondary,
-                size: 30,
-              ),
-            ),
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
           );
         },
         errorBuilder: (context, error, stackTrace) {
           return const Icon(
             Icons.shopping_basket_outlined,
-            size: 50,
+            size: 55,
             color: AppColors.primary,
           );
         },
       );
     }
 
-    return Image.asset(
-      url,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        return const Icon(
-          Icons.shopping_basket_outlined,
-          size: 50,
-          color: AppColors.primary,
-        );
-      },
+    if (url.isNotEmpty) {
+      return Image.asset(
+        url,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(
+            Icons.shopping_basket_outlined,
+            size: 55,
+            color: AppColors.primary,
+          );
+        },
+      );
+    }
+
+    return const Icon(
+      Icons.shopping_basket_outlined,
+      size: 55,
+      color: AppColors.primary,
     );
   }
 }

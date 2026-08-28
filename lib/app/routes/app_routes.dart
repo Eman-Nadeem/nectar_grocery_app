@@ -8,4 +8,6 @@ abstract class Routes {
   static const number = '/number';
   static const verification = '/verification';
   static const selectLocation = '/location';
+  static const productDetails = '/product-details';
+  static const categoryProducts = '/category-products';
 }

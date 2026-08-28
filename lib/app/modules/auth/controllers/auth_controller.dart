@@ -1,17 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
+import 'package:nectar_grocery/app/modules/home/controllers/home_controller.dart';
 import '../../../data/models/user_models.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/utils.dart';
 
 class AuthController extends GetxController {
-  // Firebase Auth instance 🔐
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Text Editing Controllers 📝
   final usernameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -19,13 +20,11 @@ class AuthController extends GetxController {
   final otpController = TextEditingController();
   final countryCodeController = TextEditingController(text: '+92');
 
-  // Reactive state for password visibility 👁️
   var isPasswordHidden = true.obs;
   var isLoading = false.obs;
 
-  // Location Dropdown States
   var selectedZone = 'Satiana Road'.obs;
-  var selectedArea = 'Types of your area'.obs;
+  var selectedArea = 'Select your area'.obs;
 
   String tempUsername = '';
   String tempEmail = '';
@@ -35,12 +34,10 @@ class AuthController extends GetxController {
   String tempArea = '';
   String _verificationId = '';
 
-  // Toggle password visibility state 🔄
   void togglePasswordVisibility() {
     isPasswordHidden.value = !isPasswordHidden.value;
   }
 
-  // Cleanup controllers when screen is closed 🧹
   @override
   void onClose() {
     usernameController.dispose();
@@ -52,13 +49,124 @@ class AuthController extends GetxController {
     super.onClose();
   }
 
+  /// Real-Time GPS Location Detection with Timeout & Fallback so UI Never Hangs
+  Future<void> getCurrentGPSLocation() async {
+    try {
+      isLoading.value = true;
+
+      // 1. Check if location service (GPS) is turned on
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        Utils.toastMessage(
+          'GPS is disabled. Please turn on location in settings or pick from dropdown.',
+          backgroundColor: Colors.orange,
+        );
+        await Geolocator.openLocationSettings();
+        return;
+      }
+
+      // 2. Check and request location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          Utils.toastMessage('Location permission was denied. Please select from dropdown.', backgroundColor: Colors.orange);
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        Utils.toastMessage(
+          'Location permission permanently denied. Opening App Settings...',
+          backgroundColor: Colors.red,
+        );
+        await Geolocator.openAppSettings();
+        return;
+      }
+
+      // 3. Obtain Position with 10-second timeout & medium accuracy for fast fix
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+      } catch (e) {
+        debugPrint('getCurrentPosition failed: $e. Trying last known position...');
+        position = await Geolocator.getLastKnownPosition();
+      }
+
+      if (position != null) {
+        // 4. Reverse Geocoding
+        List<Placemark> placemarks = [];
+        try {
+          placemarks = await placemarkFromCoordinates(
+            position.latitude,
+            position.longitude,
+          ).timeout(const Duration(seconds: 5), onTimeout: () => []);
+        } catch (e) {
+          debugPrint('Geocoding failed: $e');
+        }
+
+        if (placemarks.isNotEmpty) {
+          Placemark place = placemarks.first;
+
+          // Resolve Zone
+          String zone = place.locality?.isNotEmpty == true
+              ? place.locality!
+              : (place.subAdministrativeArea?.isNotEmpty == true
+                  ? place.subAdministrativeArea!
+                  : (place.administrativeArea?.isNotEmpty == true ? place.administrativeArea! : 'Satiana Road'));
+
+          // Resolve Area
+          String area = place.subLocality?.isNotEmpty == true
+              ? place.subLocality!
+              : (place.thoroughfare?.isNotEmpty == true
+                  ? place.thoroughfare!
+                  : (place.name?.isNotEmpty == true ? place.name! : 'Block A'));
+
+          selectedZone.value = zone;
+          selectedArea.value = area;
+
+          Utils.toastMessage('GPS Location Detected: $zone, $area', backgroundColor: Colors.green);
+        } else {
+          // Fallback if reverse geocoding is unavailable
+          final zone = 'Lat ${position.latitude.toStringAsFixed(2)}';
+          final area = 'Long ${position.longitude.toStringAsFixed(2)}';
+          selectedZone.value = zone;
+          selectedArea.value = area;
+
+          Utils.toastMessage(
+            'GPS Coordinates Found (${position.latitude.toStringAsFixed(2)}, ${position.longitude.toStringAsFixed(2)})',
+            backgroundColor: Colors.green,
+          );
+        }
+      } else {
+        Utils.toastMessage(
+          'Could not fetch GPS fix. Please select your zone & area from dropdowns below.',
+          backgroundColor: Colors.orange,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching GPS location: $e');
+      if (e.toString().contains('MissingPluginException')) {
+        Utils.toastMessage(
+          'Please stop & restart the app (flutter run) to load new native location plugins.',
+          backgroundColor: Colors.orange,
+        );
+      } else {
+        Utils.toastMessage('Location request timed out. Please select from dropdown.', backgroundColor: Colors.orange);
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> login() async {
-    if (emailController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty) {
-      Utils.toastMessage(
-        'Please enter email and password',
-        backgroundColor: Colors.red,
-      );
+    if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
+      Utils.toastMessage('Please enter email and password', backgroundColor: Colors.red);
       return;
     }
 
@@ -70,176 +178,152 @@ class AuthController extends GetxController {
         password: passwordController.text.trim(),
       );
 
-      isLoading.value = false;
-
       if (userCredential.user != null) {
-        Utils.toastMessage("Login successful!", backgroundColor: Colors.green);
-        emailController.clear();
-        passwordController.clear();
+        Utils.toastMessage('Login successful!', backgroundColor: Colors.green);
         Get.offAllNamed(Routes.home);
       }
     } on FirebaseAuthException catch (e) {
+      Utils.toastMessage(e.message ?? 'Login failed', backgroundColor: Colors.red);
+    } finally {
       isLoading.value = false;
-
-      Utils.toastMessage(
-        e.message ?? 'Login failed',
-        backgroundColor: Colors.red,
-      );
     }
   }
 
-  /// 1. Sign Up button click: Stores credentials locally & starts Onboarding (Account NOT created yet)
-  void signUp() {
-    if (emailController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty ||
-        usernameController.text.trim().isEmpty) {
-      Utils.toastMessage(
-        "Please enter all the fields",
-        backgroundColor: Colors.red,
-      );
-      return;
-    }
-
+  void saveTempRegistrationData() {
     tempUsername = usernameController.text.trim();
     tempEmail = emailController.text.trim();
     tempPassword = passwordController.text.trim();
+  }
 
-    Utils.toastMessage(
-      "Details saved! Proceeding to onboarding...",
-      backgroundColor: Colors.green,
-    );
-
+  void signUp() {
+    if (usernameController.text.trim().isEmpty ||
+        emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      Utils.toastMessage('Please fill in all fields', backgroundColor: Colors.orange);
+      return;
+    }
+    saveTempRegistrationData();
     Get.toNamed(Routes.number);
   }
 
-  /// 2. Sends SMS Verification code via Firebase Auth
-  Future<void> goToVerification() async {
-    final phoneNum = phoneController.text.trim();
-    if (phoneNum.isEmpty) {
-      Utils.toastMessage('Please enter your mobile number', backgroundColor: Colors.orange);
-      return;
-    }
-
-    tempPhone = '${countryCodeController.text.trim()}$phoneNum';
-
-    try {
-      isLoading.value = true;
-      Utils.toastMessage('Requesting verification code for $tempPhone...', backgroundColor: Colors.blue);
-
-      await _auth.verifyPhoneNumber(
-        phoneNumber: tempPhone,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          otpController.text = credential.smsCode ?? '';
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          isLoading.value = false;
-          debugPrint('Firebase Phone Verification error: ${e.message}');
-          Utils.toastMessage(
-            'SMS setup notice: ${e.message}. Demo code (1234) active.',
-            backgroundColor: Colors.orange,
-          );
-          Get.toNamed(Routes.verification);
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          isLoading.value = false;
-          _verificationId = verificationId;
-          Utils.toastMessage('SMS Code sent to $tempPhone!', backgroundColor: Colors.green);
-          Get.toNamed(Routes.verification);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          _verificationId = verificationId;
-        },
-        timeout: const Duration(seconds: 60),
-      );
-    } catch (e) {
-      isLoading.value = false;
-      debugPrint('Error triggering verification: $e');
-      Utils.toastMessage('Proceeding with demo code: 1234', backgroundColor: Colors.blue);
-      Get.toNamed(Routes.verification);
-    }
+  void goToVerification() {
+    sendOtp();
   }
 
-  /// 3. Validates Verification code
   void goToSelectLocation() {
-    final code = otpController.text.trim();
-    if (code.isEmpty) {
-      Utils.toastMessage('Please enter the verification code', backgroundColor: Colors.orange);
+    verifyOtp();
+  }
+
+  void saveTempPhoneData() {
+    tempPhone = '${countryCodeController.text.trim()}${phoneController.text.trim()}';
+  }
+
+  Future<void> sendOtp() async {
+    if (phoneController.text.trim().isEmpty) {
+      Utils.toastMessage('Please enter a valid phone number', backgroundColor: Colors.red);
       return;
     }
 
-    debugPrint('Verifying OTP code: $code for verificationId: $_verificationId');
-    Utils.toastMessage('Code verified!', backgroundColor: Colors.green);
-    Get.toNamed(Routes.selectLocation);
+    saveTempPhoneData();
+    isLoading.value = true;
+
+    await _auth.verifyPhoneNumber(
+      phoneNumber: tempPhone,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await _auth.signInWithCredential(credential);
+        isLoading.value = false;
+        Get.toNamed(Routes.selectLocation);
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        isLoading.value = false;
+        Utils.toastMessage('Phone verification failed: ${e.message}', backgroundColor: Colors.red);
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        _verificationId = verificationId;
+        isLoading.value = false;
+        Utils.toastMessage('OTP sent to $tempPhone', backgroundColor: Colors.green);
+        Get.toNamed(Routes.verification);
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        _verificationId = verificationId;
+      },
+    );
   }
 
-  /// 4. Final Submit: CREATES Firebase Auth Account AND Saves UserModel to Firestore!
-  Future<void> saveUserProfile() async {
-    if (tempEmail.isEmpty || tempPassword.isEmpty) {
-      Utils.toastMessage("Registration details missing. Please sign up again.", backgroundColor: Colors.red);
-      Get.offAllNamed(Routes.signup);
+  Future<void> verifyOtp() async {
+    if (otpController.text.trim().length < 4) {
+      Utils.toastMessage('Please enter valid 4-digit code', backgroundColor: Colors.red);
       return;
     }
 
     try {
       isLoading.value = true;
-
-      // A) Create Account in Firebase Auth NOW on final Submit
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: tempEmail,
-        password: tempPassword,
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId,
+        smsCode: otpController.text.trim(),
       );
 
-      final user = userCredential.user;
-      if (user == null) {
-        throw Exception("Failed to create user account");
-      }
-
-      await user.updateDisplayName(tempUsername);
-
-      // B) Create UserModel object
-      UserModel userModel = UserModel(
-        uid: user.uid,
-        username: tempUsername.isNotEmpty ? tempUsername : 'User',
-        email: tempEmail,
-        phone: tempPhone.isNotEmpty ? tempPhone : phoneController.text.trim(),
-        zone: selectedZone.value,
-        area: selectedArea.value,
-        isAdmin: false,
-        role: 'user',
-      );
-
-      // C) Save UserModel document into Cloud Firestore users/{uid}
-      await _firestore.collection('users').doc(user.uid).set(userModel.toMap());
-
+      await _auth.signInWithCredential(credential);
       isLoading.value = false;
-
-      // Clear input fields
-      emailController.clear();
-      passwordController.clear();
-      usernameController.clear();
-      phoneController.clear();
-      otpController.clear();
-      countryCodeController.text = '+92';
-
-      Utils.toastMessage(
-        "Account created & Profile saved successfully!",
-        backgroundColor: Colors.green,
-      );
-
-      Get.offAllNamed(Routes.home);
+      Get.toNamed(Routes.selectLocation);
     } on FirebaseAuthException catch (e) {
       isLoading.value = false;
-      Utils.toastMessage(
-        e.message ?? "Account creation failed",
-        backgroundColor: Colors.red,
-      );
-    } catch (e) {
-      isLoading.value = false;
-      Utils.toastMessage(
-        "Error saving user profile: $e",
-        backgroundColor: Colors.red,
-      );
+      Utils.toastMessage(e.message ?? 'Invalid OTP Code', backgroundColor: Colors.red);
     }
   }
 
+  Future<void> saveUserProfile() async {
+    try {
+      isLoading.value = true;
+      User? currentUser = _auth.currentUser;
+
+      if (currentUser == null && tempEmail.isNotEmpty && tempPassword.isNotEmpty) {
+        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          email: tempEmail,
+          password: tempPassword,
+        ).timeout(const Duration(seconds: 8));
+        currentUser = userCredential.user;
+      }
+
+      if (currentUser != null) {
+        UserModel newUser = UserModel(
+          uid: currentUser.uid,
+          username: tempUsername.isNotEmpty ? tempUsername : (currentUser.displayName ?? 'User'),
+          email: currentUser.email ?? tempEmail,
+          phone: tempPhone.isNotEmpty ? tempPhone : (currentUser.phoneNumber ?? ''),
+          zone: selectedZone.value,
+          area: selectedArea.value,
+        );
+
+        await _firestore
+            .collection('users')
+            .doc(currentUser.uid)
+            .set(newUser.toMap(), SetOptions(merge: true))
+            .timeout(const Duration(seconds: 6));
+
+        if (Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().loadUserLocation();
+        }
+
+        Utils.toastMessage('Location & profile saved!', backgroundColor: Colors.green);
+        Get.offAllNamed(Routes.home);
+      } else {
+        // Guest mode fallback so user can proceed directly to Home
+        if (Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().selectedLocation.value = '${selectedZone.value}, ${selectedArea.value}';
+        }
+        Utils.toastMessage('Location saved!', backgroundColor: Colors.green);
+        Get.offAllNamed(Routes.home);
+      }
+    } catch (e) {
+      debugPrint('Error saving profile: $e');
+      // If network times out, navigate home gracefully
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().selectedLocation.value = '${selectedZone.value}, ${selectedArea.value}';
+      }
+      Get.offAllNamed(Routes.home);
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

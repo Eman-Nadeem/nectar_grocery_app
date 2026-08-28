@@ -12,33 +12,36 @@ class ProfileController extends GetxController {
 
   final RxString userName = ''.obs;
   final RxString userEmail = ''.obs;
-  final RxBool isAdmin = false.obs; // Default: false for regular users
+  final RxString photoUrl = ''.obs;
+  final RxBool isAdmin = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    loadUserProfile();
+    loadUserData();
   }
 
-    Future<void> loadUserProfile() async {
+  Future<void> loadUserData() async {
     final user = _auth.currentUser;
     if (user != null) {
       userEmail.value = user.email ?? 'user@example.com';
 
       try {
-        // Fetch user document from Firestore 'users' collection by user UID
         final userDoc = await _firestore.collection('users').doc(user.uid).get();
 
         if (userDoc.exists && userDoc.data() != null) {
-          final userModel = UserModel.fromMap(userDoc.data()!, userDoc.id);
-          
+          final data = userDoc.data()!;
+          final userModel = UserModel.fromMap(data, userDoc.id);
+
           userName.value = userModel.username.isNotEmpty
               ? userModel.username
               : (user.displayName ?? _extractNameFromEmail(userEmail.value));
-          
+
+          photoUrl.value = data['photoUrl'] ?? user.photoURL ?? '';
           isAdmin.value = userModel.isAdmin || userModel.role == 'admin';
         } else {
           userName.value = user.displayName ?? _extractNameFromEmail(userEmail.value);
+          photoUrl.value = user.photoURL ?? '';
           isAdmin.value = false;
         }
       } catch (e) {
@@ -49,10 +52,23 @@ class ProfileController extends GetxController {
     } else {
       userEmail.value = 'guest@nectargrocery.com';
       userName.value = 'Guest User';
+      photoUrl.value = '';
       isAdmin.value = false;
     }
   }
 
+  String get initials {
+    final name = userName.value;
+    if (name.trim().isEmpty) return 'U';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    if (name.trim().length >= 2) {
+      return name.trim().substring(0, 2).toUpperCase();
+    }
+    return name.trim()[0].toUpperCase();
+  }
 
   String _extractNameFromEmail(String email) {
     if (email.contains('@')) {

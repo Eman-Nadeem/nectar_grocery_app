@@ -6,8 +6,10 @@ class ProductModel {
   final double price;
   final String imageUrl;
   final String category;
+  final String categoryId;
   final bool isExclusive;
   final bool isBestSelling;
+  bool isFavorite;
 
   ProductModel({
     required this.id,
@@ -17,26 +19,28 @@ class ProductModel {
     required this.price,
     required this.imageUrl,
     required this.category,
+    this.categoryId = '',
     this.isExclusive = false,
     this.isBestSelling = false,
+    this.isFavorite = false,
   });
 
-/// Factory constructor to convert Firestore Document Map into ProductModel object
   factory ProductModel.fromMap(Map<String, dynamic> map, String docId) {
     return ProductModel(
       id: docId,
       name: map['name'] ?? '',
-      unit: map['unit'] ?? '',
+      unit: map['unit'] ?? '1kg, Price',
       description: map['description'] ?? '',
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
       imageUrl: map['imageUrl'] ?? '',
       category: map['category'] ?? '',
+      categoryId: map['categoryId'] ?? '',
       isExclusive: map['isExclusive'] ?? false,
       isBestSelling: map['isBestSelling'] ?? false,
+      isFavorite: map['isFavorite'] ?? false,
     );
   }
 
-/// Converts ProductModel object into Firestore JSON Map for uploading/saving
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -45,8 +49,10 @@ class ProductModel {
       'price': price,
       'imageUrl': imageUrl,
       'category': category,
+      'categoryId': categoryId,
       'isExclusive': isExclusive,
       'isBestSelling': isBestSelling,
+      'isFavorite': isFavorite,
     };
   }
 }

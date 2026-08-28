@@ -4,7 +4,11 @@ import 'package:nectar_grocery/app/modules/admin/views/admin_view.dart';
 import 'package:nectar_grocery/app/modules/auth/views/location_view.dart';
 import 'package:nectar_grocery/app/modules/auth/views/number_view.dart';
 import 'package:nectar_grocery/app/modules/auth/views/verification_view.dart';
+import 'package:nectar_grocery/app/modules/category_products/bindings/category_products_binding.dart';
+import 'package:nectar_grocery/app/modules/category_products/views/category_products_view.dart';
 import 'package:nectar_grocery/app/modules/home/bindings/home_bindings.dart';
+import 'package:nectar_grocery/app/modules/product_details/bindings/product_details_binding.dart';
+import 'package:nectar_grocery/app/modules/product_details/views/product_details_view.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/auth/views/signup_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
@@ -49,7 +53,7 @@ class AppPages {
       page: () => const AdminView(),
       binding: AdminBinding(),
     ),
-        GetPage(
+    GetPage(
       name: Routes.number,
       page: () => const NumberView(),
       binding: AuthBinding(),
@@ -64,6 +68,15 @@ class AppPages {
       page: () => const SelectLocationView(),
       binding: AuthBinding(),
     ),
-
+    GetPage(
+      name: Routes.productDetails,
+      page: () => const ProductDetailsView(),
+      binding: ProductDetailsBinding(),
+    ),
+    GetPage(
+      name: Routes.categoryProducts,
+      page: () => const CategoryProductsView(),
+      binding: CategoryProductsBinding(),
+    ),
   ];
 }
