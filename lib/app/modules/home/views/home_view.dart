@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/components/grocery_category_card.dart';
 import 'package:nectar_grocery/app/components/product_card.dart';
+import 'package:nectar_grocery/app/modules/cart/views/cart_view.dart';
 import 'package:nectar_grocery/app/modules/home/controllers/home_controller.dart';
 import 'package:nectar_grocery/app/modules/profile/views/profile_view.dart';
 import 'package:nectar_grocery/app/utils/app_colors.dart';
@@ -15,8 +16,12 @@ class HomeView extends GetView<HomeController> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Obx(() {
+          if (controller.currentNavIndex.value == 2) {
+            return const CartView();
+          }
+
           if (controller.currentNavIndex.value == 4) {
-            return ProfileView();
+            return const ProfileView();
           }
 
           if (controller.isLoading.value) {

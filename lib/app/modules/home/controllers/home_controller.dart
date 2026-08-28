@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get/state_manager.dart';
+import 'package:get/get.dart';
 import 'package:nectar_grocery/app/data/models/category_model.dart';
 import 'package:nectar_grocery/app/data/models/product_model.dart';
 import 'package:nectar_grocery/app/data/repositories/product_repository.dart';
+import 'package:nectar_grocery/app/modules/cart/controllers/cart_controller.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class HomeController extends GetxController {
@@ -106,28 +107,23 @@ class HomeController extends GetxController {
     try {
       isLoading.value = true;
 
-      // Single-pass fetch for all products
+      // Single-pass fetch for all products from Firestore
       final allProducts = await _productRepository.getAllProducts();
 
       final exclusive = allProducts.where((p) => p.isExclusive).toList();
       final bestSellingProducts = allProducts.where((p) => p.isBestSelling).toList();
-      final groceries = allProducts.where((p) => p.category == 'groceries').toList();
+      final groceries = allProducts.where((p) => p.category.toLowerCase() == 'groceries').toList();
 
-      exclusiveProducts.assignAll(
-        exclusive.isNotEmpty
-            ? exclusive
-            : ProductRepository.fallbackProducts.where((p) => p.isExclusive).toList(),
-      );
-      bestSelling.assignAll(
-        bestSellingProducts.isNotEmpty
-            ? bestSellingProducts
-            : ProductRepository.fallbackProducts.where((p) => p.isBestSelling).toList(),
-      );
-      groceryProducts.assignAll(
-        groceries.isNotEmpty
-            ? groceries
-            : ProductRepository.fallbackProducts.where((p) => p.category == 'groceries').toList(),
-      );
+      // Prioritize real Firestore products over fallback items
+      if (allProducts.isNotEmpty) {
+        exclusiveProducts.assignAll(exclusive.isNotEmpty ? exclusive : allProducts);
+        bestSelling.assignAll(bestSellingProducts.isNotEmpty ? bestSellingProducts : allProducts);
+        groceryProducts.assignAll(groceries.isNotEmpty ? groceries : allProducts);
+      } else {
+        exclusiveProducts.assignAll(ProductRepository.fallbackProducts.where((p) => p.isExclusive).toList());
+        bestSelling.assignAll(ProductRepository.fallbackProducts.where((p) => p.isBestSelling).toList());
+        groceryProducts.assignAll(ProductRepository.fallbackProducts.where((p) => p.category == 'groceries').toList());
+      }
     } catch (e) {
       debugPrint('Error loading home data: $e');
       exclusiveProducts.assignAll(ProductRepository.fallbackProducts.where((p) => p.isExclusive).toList());
@@ -144,10 +140,14 @@ class HomeController extends GetxController {
   }
 
   //Add product to cart
-  void addToCart(ProductModel product){
-    Utils.toastMessage(
-      '${product.name} added to cart',
-      backgroundColor: Colors.green,
-    );
+  void addToCart(ProductModel product) {
+    if (Get.isRegistered<CartController>()) {
+      Get.find<CartController>().addToCart(product);
+    } else {
+      Utils.toastMessage(
+        '${product.name} added to cart',
+        backgroundColor: Colors.green,
+      );
+    }
   }
 }

@@ -52,6 +52,8 @@ class ProductRepository {
           .get()
           .timeout(const Duration(seconds: 5));
 
+      debugPrint("Firestore returned ${snapshot.docs.length} products from '$_collection' collection");
+
       if (snapshot.docs.isEmpty) {
         return fallbackProducts;
       }
