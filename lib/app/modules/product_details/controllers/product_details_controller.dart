@@ -5,6 +5,7 @@ import 'package:nectar_grocery/app/data/models/product_model.dart';
 import 'package:nectar_grocery/app/data/repositories/product_repository.dart';
 import 'package:nectar_grocery/app/modules/cart/controllers/cart_controller.dart';
 import 'package:nectar_grocery/app/modules/favourite/controllers/favourite_controller.dart';
+import 'package:nectar_grocery/app/utils/analytics_service.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class ProductDetailsController extends GetxController {
@@ -35,6 +36,7 @@ class ProductDetailsController extends GetxController {
       );
     }
     _syncFavoriteState();
+    AnalyticsService.logViewItem(product);
   }
 
   void _syncFavoriteState() {

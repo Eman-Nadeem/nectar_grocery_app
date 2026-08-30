@@ -7,6 +7,7 @@ import 'package:nectar_grocery/app/data/models/product_model.dart';
 import 'package:nectar_grocery/app/data/repositories/order_repository.dart';
 import 'package:nectar_grocery/app/modules/cart/views/order_accepted_view.dart';
 import 'package:nectar_grocery/app/modules/profile/controllers/profile_controller.dart';
+import 'package:nectar_grocery/app/utils/analytics_service.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class CartController extends GetxController {
@@ -62,6 +63,7 @@ class CartController extends GetxController {
     } else {
       cartItems.add(CartItemModel(product: product, quantity: 1));
     }
+    AnalyticsService.logAddToCart(product);
     Utils.toastMessage('${product.name} added to cart', backgroundColor: Colors.green);
   }
 
@@ -131,6 +133,7 @@ class CartController extends GetxController {
     final success = await orderRepo.createOrder(newOrder);
 
     if (success) {
+      AnalyticsService.logPurchase(newOrder);
       clearCart();
       Get.to(() => const OrderAcceptedView());
     } else {

@@ -7,6 +7,7 @@ import 'package:nectar_grocery/app/data/models/product_model.dart';
 import 'package:nectar_grocery/app/data/repositories/category_repository.dart';
 import 'package:nectar_grocery/app/data/repositories/product_repository.dart';
 import 'package:nectar_grocery/app/modules/cart/controllers/cart_controller.dart';
+import 'package:nectar_grocery/app/utils/analytics_service.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class HomeController extends GetxController {
@@ -31,6 +32,11 @@ class HomeController extends GetxController {
     super.onInit();
     fetchHomeData();
     loadUserLocation();
+    debounce(
+      searchQuery,
+      (q) => AnalyticsService.logSearch(q.toString()),
+      time: const Duration(seconds: 1),
+    );
   }
 
   /// Fetches saved zone & area from Firestore users collection

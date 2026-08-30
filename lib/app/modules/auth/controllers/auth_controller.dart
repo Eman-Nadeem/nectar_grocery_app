@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/modules/home/controllers/home_controller.dart';
 import 'package:nectar_grocery/app/modules/profile/controllers/profile_controller.dart';
+import 'package:nectar_grocery/app/utils/analytics_service.dart';
 import 'package:nectar_grocery/app/utils/crashlytics_service.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/utils.dart';
@@ -232,6 +233,8 @@ class AuthController extends GetxController {
       );
 
       if (userCredential.user != null) {
+        AnalyticsService.logLogin(loginMethod: 'email');
+        CrashlyticsService.setUserIdentifier(userCredential.user);
         Utils.toastMessage('Login successful!', backgroundColor: Colors.green);
         Get.offAllNamed(Routes.home);
       }
@@ -413,6 +416,9 @@ class AuthController extends GetxController {
         if (Get.isRegistered<ProfileController>()) {
           Get.find<ProfileController>().loadUserData();
         }
+
+        AnalyticsService.logSignUp(signUpMethod: 'email_phone');
+        CrashlyticsService.setUserIdentifier(currentUser);
 
         Utils.toastMessage(
           'Location & profile saved!',

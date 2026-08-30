@@ -115,6 +115,17 @@ Files: [`admin_view.dart`](file:///d:/nectar_grocery_app/lib/app/modules/admin/v
 
 ---
 
+### 📊 G. E-Commerce & Navigation Analytics (Firebase Analytics)
+- **Screen View Breadcrumbs**: Attached `FirebaseAnalyticsObserver` in `main.dart` to record screen transitions (Shop, Explore, Cart, Favourites, Profile, Admin) providing breadcrumbs for Crashlytics reports.
+- **E-Commerce & User Events ([`AnalyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/analytics_service.dart))**:
+  - `logAddToCart`: Tracked in `CartController` when items are added to basket.
+  - `logPurchase`: Tracked in `CartController` on order checkout completion.
+  - `logViewItem`: Tracked in `ProductDetailsController` when viewing product details.
+  - `logSearch`: Tracked in `HomeController` via a 1-second debounced listener on search queries.
+  - `logLogin` & `logSignUp`: Tracked in `AuthController` on authentication success.
+
+---
+
 ## 3. Registered Routes Sitemap
 
 | Route Constant | Path | View | Binding | Description |

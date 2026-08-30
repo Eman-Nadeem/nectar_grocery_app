@@ -45,9 +45,9 @@
   - **Profile Avatar with Username Initials**: Displays user initials (e.g. **`EN`** for `Eman Nadeem`) on a green avatar background when no profile photo is selected.
   - **My Details Page ([`MyDetailsView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_details_view.dart))**: Edit profile info, phone number, and profile photo upload with camera overlay button.
 
-- **🛡️ Real-Time Error Logging & Crash Reporting**:
+- **🛡️ Real-Time Error Logging, Crashlytics & Analytics**:
   - Integrated **Firebase Crashlytics** for real-time fatal crash tracking and unhandled async error capture.
-  - Custom [`CrashlyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/crashlytics_service.dart) for selective non-fatal error logging across Firestore repositories, Cloudinary upload, and GPS location services.
+  - Integrated **Firebase Analytics** ([`AnalyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/analytics_service.dart)) to record automatic screen transitions (breadcrumbs for Crashlytics), e-commerce events (`logAddToCart`, `logPurchase`, `logViewItem`, `logSearch`), and auth conversion metrics (`logLogin`, `logSignUp`).
 
 - **🛠️ Admin Dashboard (3-Tab Management)**:
   - **Tab 1: Products**: Catalog list with floating Add button, edit/delete actions, gallery image picker, Cloudinary upload, and mandatory Cloud Firestore category dropdown.
@@ -60,7 +60,7 @@
 
 - **Framework**: [Flutter](https://flutter.dev/) (Dart)
 - **State Management & Routing**: [GetX](https://pub.dev/packages/get)
-- **Backend & Database**: [Firebase Auth](https://firebase.google.com/), [Cloud Firestore](https://firebase.google.com/docs/firestore), & [Firebase Crashlytics](https://firebase.google.com/docs/crashlytics)
+- **Backend & Database**: [Firebase Auth](https://firebase.google.com/), [Cloud Firestore](https://firebase.google.com/docs/firestore), [Firebase Crashlytics](https://firebase.google.com/docs/crashlytics), & [Firebase Analytics](https://firebase.google.com/docs/analytics)
 - **Location & GPS**: [geolocator](https://pub.dev/packages/geolocator) & [geocoding](https://pub.dev/packages/geocoding)
 - **Image Storage**: [Cloudinary API](https://cloudinary.com/) & [image_picker](https://pub.dev/packages/image_picker)
 - **Formatting & Utils**: [intl](https://pub.dev/packages/intl) & [pinput](https://pub.dev/packages/pinput)
