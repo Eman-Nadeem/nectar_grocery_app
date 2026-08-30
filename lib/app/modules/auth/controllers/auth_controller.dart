@@ -34,6 +34,37 @@ class AuthController extends GetxController {
   String tempArea = '';
   String _verificationId = '';
 
+  @override
+  void onInit() {
+    super.onInit();
+    loadSavedUserLocation();
+  }
+
+  Future<void> loadSavedUserLocation() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      try {
+        isLoading.value = true;
+        final doc = await _firestore.collection('users').doc(currentUser.uid).get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          final zone = data['zone'] as String?;
+          final area = data['area'] as String?;
+          if (zone != null && zone.isNotEmpty) {
+            selectedZone.value = zone;
+          }
+          if (area != null && area.isNotEmpty) {
+            selectedArea.value = area;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading saved location: $e');
+      } finally {
+        isLoading.value = false;
+      }
+    }
+  }
+
   void togglePasswordVisibility() {
     isPasswordHidden.value = !isPasswordHidden.value;
   }

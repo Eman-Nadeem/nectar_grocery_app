@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/components/product_card.dart';
+import 'package:nectar_grocery/app/data/models/category_model.dart';
 import 'package:nectar_grocery/app/data/models/product_model.dart';
 import 'package:nectar_grocery/app/modules/cart/controllers/cart_controller.dart';
 import 'package:nectar_grocery/app/modules/cart/views/cart_view.dart';
@@ -16,6 +17,9 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<HomeController>()) {
+      Get.put(HomeController());
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       body: Obx(() {
@@ -55,12 +59,25 @@ class HomeView extends GetView<HomeController> {
               label: 'Explore',
             ),
             BottomNavigationBarItem(
-              icon: _buildCartIconWithBadge(false),
-              activeIcon: _buildCartIconWithBadge(true),
+              icon: Obx(() {
+                if (Get.isRegistered<CartController>()) {
+                  final cartController = Get.find<CartController>();
+                  final count = cartController.totalItemCount;
+                  if (count > 0) {
+                    return Badge(
+                      label: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                      backgroundColor: AppColors.primary,
+                      child: const Icon(Icons.shopping_cart_outlined),
+                    );
+                  }
+                }
+                return const Icon(Icons.shopping_cart_outlined);
+              }),
+              activeIcon: const Icon(Icons.shopping_cart, color: AppColors.primary),
               label: 'Cart',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border_outlined),
+              icon: Icon(Icons.favorite_border),
               activeIcon: Icon(Icons.favorite, color: AppColors.primary),
               label: 'Favourite',
             ),
@@ -73,49 +90,6 @@ class HomeView extends GetView<HomeController> {
         );
       }),
     );
-  }
-
-  Widget _buildCartIconWithBadge(bool isActive) {
-    return Obx(() {
-      int count = 0;
-      if (Get.isRegistered<CartController>()) {
-        count = Get.find<CartController>().totalItemCount;
-      }
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Icon(
-            Icons.shopping_cart_outlined,
-            color: isActive ? AppColors.primary : AppColors.textPrimary,
-          ),
-          if (count > 0)
-            Positioned(
-              right: -6,
-              top: -6,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 16,
-                  minHeight: 16,
-                ),
-                child: Text(
-                  '$count',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-        ],
-      );
-    });
   }
 
   // --- SHOP TAB BODY ---
@@ -226,7 +200,7 @@ class HomeView extends GetView<HomeController> {
                     children: [
                       // Banner with Rich Vibrant Gradient Background
                       Container(
-                        height: 125,
+                        height: 135,
                         width: double.infinity,
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
@@ -277,7 +251,7 @@ class HomeView extends GetView<HomeController> {
                             ),
                             // Banner Text & Action Button
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                               child: Row(
                                 children: [
                                   Expanded(
@@ -351,7 +325,16 @@ class HomeView extends GetView<HomeController> {
 
                       // 1. Exclusive Offer Section
                       _buildSectionHeader('Exclusive Offer', () {
-                        controller.changeNavIndex(1);
+                        Get.toNamed(
+                          Routes.categoryProducts,
+                          arguments: CategoryModel(
+                            id: 'exclusive_offer',
+                            name: 'Exclusive Offer',
+                            imageUrl: '',
+                            backgroundColor: const Color(0xFFE8F5E9),
+                            borderColor: const Color(0xFFA5D6A7),
+                          ),
+                        );
                       }),
                       const SizedBox(height: 15),
                       Obx(() => _buildHorizontalProductList(controller.exclusiveProducts)),
@@ -360,7 +343,16 @@ class HomeView extends GetView<HomeController> {
 
                       // 2. Best Selling Section
                       _buildSectionHeader('Best Selling', () {
-                        controller.changeNavIndex(1);
+                        Get.toNamed(
+                          Routes.categoryProducts,
+                          arguments: CategoryModel(
+                            id: 'best_selling',
+                            name: 'Best Selling',
+                            imageUrl: '',
+                            backgroundColor: const Color(0xFFFFF3E0),
+                            borderColor: const Color(0xFFFFCC80),
+                          ),
+                        );
                       }),
                       const SizedBox(height: 15),
                       Obx(() => _buildHorizontalProductList(controller.bestSelling)),

@@ -22,17 +22,22 @@ class MyOrdersController extends GetxController {
       final user = FirebaseAuth.instance.currentUser;
       final uid = user?.uid ?? '';
 
+      if (uid.isEmpty) {
+        userOrders.clear();
+        return;
+      }
+
       final snapshot = await _firestore
           .collection('orders')
-          .orderBy('createdAt', descending: true)
+          .where('userId', isEqualTo: user?.uid)
           .get();
 
       final orders = snapshot.docs
           .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
-          .where((order) => uid.isEmpty || order.userId == uid || order.userId == 'guest')
           .toList();
 
-      userOrders.assignAll(orders.isNotEmpty ? orders : snapshot.docs.map((doc) => OrderModel.fromMap(doc.data(), doc.id)).toList());
+      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      userOrders.assignAll(orders);
     } catch (e) {
       debugPrint('Error fetching user orders: $e');
     } finally {

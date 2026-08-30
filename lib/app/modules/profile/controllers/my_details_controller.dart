@@ -39,9 +39,16 @@ class MyDetailsController extends GetxController {
           final data = doc.data()!;
           nameController.text = data['username'] ?? user.displayName ?? '';
           phoneController.text = data['phone'] ?? '';
+          final savedEmail = data['email'] as String?;
+          if (savedEmail != null && savedEmail.isNotEmpty) {
+            emailController.text = savedEmail;
+          } else if (user.email != null && user.email!.isNotEmpty) {
+            emailController.text = user.email!;
+          }
           photoUrl.value = data['photoUrl'] ?? user.photoURL ?? '';
         } else {
           nameController.text = user.displayName ?? user.email?.split('@').first ?? 'User';
+          emailController.text = user.email ?? '';
         }
       } catch (e) {
         debugPrint('Error loading user data: $e');
@@ -83,6 +90,7 @@ class MyDetailsController extends GetxController {
 
     final name = nameController.text.trim();
     final phone = phoneController.text.trim();
+    final email = emailController.text.trim();
 
     if (name.isEmpty) {
       Utils.toastMessage('Please enter your name', backgroundColor: Colors.orange);
@@ -107,13 +115,23 @@ class MyDetailsController extends GetxController {
     }
 
     try {
-      await _firestore.collection('users').doc(user.uid).set({
+      final Map<String, dynamic> updateData = {
         'username': name,
         'phone': phone,
-        'email': user.email,
         'photoUrl': finalPhotoUrl,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+
+      if (email.isNotEmpty) {
+        updateData['email'] = email;
+      } else if (user.email != null && user.email!.isNotEmpty) {
+        updateData['email'] = user.email;
+      }
+
+      await _firestore.collection('users').doc(user.uid).set(
+        updateData,
+        SetOptions(merge: true),
+      );
 
       if (Get.isRegistered<ProfileController>()) {
         Get.find<ProfileController>().loadUserData();

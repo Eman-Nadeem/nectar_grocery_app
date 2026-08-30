@@ -34,12 +34,20 @@ class VerificationView extends GetView<AuthController> {
           onPressed: () => Get.back(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
-        elevation: 0,
-        shape: const CircleBorder(),
-        onPressed: controller.goToSelectLocation,
-        child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
+      floatingActionButton: Obx(
+        () => FloatingActionButton(
+          backgroundColor: AppColors.primary,
+          elevation: 0,
+          shape: const CircleBorder(),
+          onPressed: controller.isLoading.value ? null : controller.goToSelectLocation,
+          child: controller.isLoading.value
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                )
+              : const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
+        ),
       ),
       body: SafeArea(
         child: Padding(

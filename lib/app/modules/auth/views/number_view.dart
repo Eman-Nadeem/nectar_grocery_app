@@ -18,12 +18,20 @@ class NumberView extends GetView<AuthController> {
           onPressed: () => Get.back(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
-        elevation: 0,
-        shape: const CircleBorder(),
-        onPressed: controller.goToVerification,
-        child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
+      floatingActionButton: Obx(
+        () => FloatingActionButton(
+          backgroundColor: AppColors.primary,
+          elevation: 0,
+          shape: const CircleBorder(),
+          onPressed: controller.isLoading.value ? null : controller.goToVerification,
+          child: controller.isLoading.value
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                )
+              : const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
+        ),
       ),
       body: SafeArea(
         child: Padding(
@@ -74,7 +82,7 @@ class NumberView extends GetView<AuthController> {
                       keyboardType: TextInputType.phone,
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                       decoration: const InputDecoration(
-                        hintText: '1712345678',
+                        hintText: 'Your Phone Number',
                         hintStyle: TextStyle(color: AppColors.textSecondary),
                         border: InputBorder.none,
                       ),

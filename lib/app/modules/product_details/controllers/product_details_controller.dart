@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/data/models/product_model.dart';
@@ -22,7 +23,6 @@ class ProductDetailsController extends GetxController {
     super.onInit();
     if (Get.arguments is ProductModel) {
       product = Get.arguments as ProductModel;
-      isFavorite.value = product.isFavorite;
     } else {
       product = ProductModel(
         id: '',
@@ -33,6 +33,16 @@ class ProductDetailsController extends GetxController {
         imageUrl: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=500',
         category: 'fruits',
       );
+    }
+    _syncFavoriteState();
+  }
+
+  void _syncFavoriteState() {
+    if (Get.isRegistered<FavouriteController>()) {
+      final favController = Get.find<FavouriteController>();
+      isFavorite.value = favController.favoriteItems.any((p) => p.id == product.id) || product.isFavorite;
+    } else {
+      isFavorite.value = product.isFavorite;
     }
   }
 
@@ -47,21 +57,26 @@ class ProductDetailsController extends GetxController {
   }
 
   Future<void> toggleFavorite() async {
-    isFavorite.value = !isFavorite.value;
-    product.isFavorite = isFavorite.value;
-
-    await _productRepository.toggleFavoriteStatus(product.id, !isFavorite.value);
-
     if (Get.isRegistered<FavouriteController>()) {
-      Get.find<FavouriteController>().loadFavorites();
+      await Get.find<FavouriteController>().toggleFavorite(product);
+      isFavorite.value = product.isFavorite;
+    } else {
+      final user = FirebaseAuth.instance.currentUser;
+      final uid = user?.uid ?? '';
+      if (uid.isEmpty) {
+        Utils.toastMessage('Please sign in to save favorites', backgroundColor: Colors.orange);
+        return;
+      }
+      isFavorite.value = !isFavorite.value;
+      product.isFavorite = isFavorite.value;
+      await _productRepository.toggleUserFavorite(uid, product.id, isFavorite.value);
+      Utils.toastMessage(
+        isFavorite.value
+            ? '${product.name} added to favorites'
+            : '${product.name} removed from favorites',
+        backgroundColor: isFavorite.value ? Colors.green : Colors.orange,
+      );
     }
-
-    Utils.toastMessage(
-      isFavorite.value
-          ? '${product.name} added to favorites'
-          : '${product.name} removed from favorites',
-      backgroundColor: isFavorite.value ? Colors.green : Colors.orange,
-    );
   }
 
   void addToBasket() {

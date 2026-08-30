@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/data/models/user_models.dart';
 import 'package:nectar_grocery/app/routes/app_routes.dart';
+import 'package:nectar_grocery/app/utils/crashlytics_service.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class ProfileController extends GetxController {
@@ -24,8 +25,7 @@ class ProfileController extends GetxController {
   Future<void> loadUserData() async {
     final user = _auth.currentUser;
     if (user != null) {
-      userEmail.value = user.email ?? 'user@example.com';
-
+      CrashlyticsService.setUserIdentifier(user.uid);
       try {
         final userDoc = await _firestore.collection('users').doc(user.uid).get();
 
@@ -33,19 +33,35 @@ class ProfileController extends GetxController {
           final data = userDoc.data()!;
           final userModel = UserModel.fromMap(data, userDoc.id);
 
+          // Resolve Email: Firestore email > Firebase Auth email > Firestore phone > Auth phone
+          if (userModel.email.isNotEmpty) {
+            userEmail.value = userModel.email;
+          } else if (user.email != null && user.email!.isNotEmpty) {
+            userEmail.value = user.email!;
+          } else if (userModel.phone.isNotEmpty) {
+            userEmail.value = userModel.phone;
+          } else if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) {
+            userEmail.value = user.phoneNumber!;
+          } else {
+            userEmail.value = '';
+          }
+
           userName.value = userModel.username.isNotEmpty
               ? userModel.username
               : (user.displayName ?? _extractNameFromEmail(userEmail.value));
 
           photoUrl.value = data['photoUrl'] ?? user.photoURL ?? '';
           isAdmin.value = userModel.isAdmin || userModel.role == 'admin';
+          CrashlyticsService.setCustomKey('is_admin', isAdmin.value);
         } else {
+          userEmail.value = user.email ?? user.phoneNumber ?? '';
           userName.value = user.displayName ?? _extractNameFromEmail(userEmail.value);
           photoUrl.value = user.photoURL ?? '';
           isAdmin.value = false;
         }
       } catch (e) {
         debugPrint("Error loading user profile role: $e");
+        userEmail.value = user.email ?? user.phoneNumber ?? '';
         userName.value = user.displayName ?? _extractNameFromEmail(userEmail.value);
         isAdmin.value = false;
       }

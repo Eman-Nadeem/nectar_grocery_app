@@ -54,7 +54,34 @@ class ProductRepository {
     }
   }
 
-  /// Toggle Favorite status in Cloud Firestore
+  /// Toggle Favorite status for a specific user in Cloud Firestore
+  Future<void> toggleUserFavorite(String userId, String productId, bool isFavorite) async {
+    if (userId.isEmpty) return;
+    try {
+      final userFavRef = _firestore.collection('users').doc(userId).collection('favorites').doc(productId);
+      if (isFavorite) {
+        await userFavRef.set({'productId': productId, 'addedAt': FieldValue.serverTimestamp()});
+      } else {
+        await userFavRef.delete();
+      }
+    } catch (e) {
+      debugPrint("Error toggling user favorite in Firestore: $e");
+    }
+  }
+
+  /// Get list of favorite product IDs for a specific user
+  Future<Set<String>> getUserFavoriteIds(String userId) async {
+    if (userId.isEmpty) return {};
+    try {
+      final snapshot = await _firestore.collection('users').doc(userId).collection('favorites').get();
+      return snapshot.docs.map((doc) => doc.id).toSet();
+    } catch (e) {
+      debugPrint("Error fetching user favorite IDs: $e");
+      return {};
+    }
+  }
+
+  /// Legacy Toggle Favorite status
   Future<void> toggleFavoriteStatus(String productId, bool currentFavoriteState) async {
     try {
       await _firestore.collection(_collection).doc(productId).update({

@@ -102,7 +102,7 @@ class MyDetailsView extends StatelessWidget {
                 // Form Fields
                 _buildTextField('Full Name', controller.nameController, 'Enter your name'),
                 const SizedBox(height: 15),
-                _buildTextField('Email Address', controller.emailController, 'Enter your email', readOnly: true),
+                _buildTextField('Email Address', controller.emailController, 'Enter your email', keyboardType: TextInputType.emailAddress),
                 const SizedBox(height: 15),
                 _buildTextField('Phone Number', controller.phoneController, 'Enter your phone number', keyboardType: TextInputType.phone),
 

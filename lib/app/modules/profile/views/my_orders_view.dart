@@ -164,6 +164,66 @@ class MyOrdersView extends StatelessWidget {
                   ],
                 ),
               )),
+          if (order.deliveryMethod.contains(r'$2.00') || order.deliveryMethod.toLowerCase().contains('express')) ...[
+            const SizedBox(height: 4),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '• Delivery Fee (Express)',
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  '+\$2.00',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+
+          // Delivery & Payment Method Info Pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.local_shipping_outlined, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      order.deliveryMethod,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.payment_outlined, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: 6),
+                    Text(
+                      order.paymentMethod,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
           const Divider(height: 20, thickness: 1),
 
           // Total Price

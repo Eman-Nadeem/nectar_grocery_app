@@ -37,29 +37,34 @@ class FavouriteView extends GetView<FavouriteController> {
 
           if (controller.favoriteItems.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.favorite_border,
-                    size: 80,
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    'No Favorites Yet',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.favorite_border,
+                      size: 80,
+                      color: AppColors.primary.withValues(alpha: 0.4),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Tap the heart icon on any product to save it here!',
-                    style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                  ),
-                ],
+                    const SizedBox(height: 15),
+                    const Text(
+                      'No Favorites Yet',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Tap the heart icon on any product to save it here!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -125,9 +130,7 @@ class FavouriteView extends GetView<FavouriteController> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: product.imageUrl.startsWith('http')
-                  ? Image.network(product.imageUrl, fit: BoxFit.contain)
-                  : const Icon(Icons.shopping_basket, color: AppColors.primary, size: 30),
+              child: _buildTileImage(product.imageUrl),
             ),
           ),
           const SizedBox(width: 20),
@@ -167,5 +170,31 @@ class FavouriteView extends GetView<FavouriteController> {
         ],
       ),
     );
+  }
+
+  Widget _buildTileImage(String url) {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(
+        url,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => const Icon(
+          Icons.shopping_basket,
+          color: AppColors.primary,
+          size: 30,
+        ),
+      );
+    }
+    if (url.isNotEmpty) {
+      return Image.asset(
+        url,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => const Icon(
+          Icons.shopping_basket,
+          color: AppColors.primary,
+          size: 30,
+        ),
+      );
+    }
+    return const Icon(Icons.shopping_basket, color: AppColors.primary, size: 30);
   }
 }

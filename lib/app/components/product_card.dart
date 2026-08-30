@@ -7,6 +7,8 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
   final VoidCallback? onAddPressed;
+  final VoidCallback? onFavoriteTap;
+  final bool? isFavorite;
 
   const ProductCard({
     super.key,
@@ -14,10 +16,14 @@ class ProductCard extends StatelessWidget {
     this.onTap,
     this.onAddToCart,
     this.onAddPressed,
+    this.onFavoriteTap,
+    this.isFavorite,
   });
 
   @override
   Widget build(BuildContext context) {
+    final favState = isFavorite ?? product.isFavorite;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -31,14 +37,38 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Prominent Full Image
+            // Prominent Full Image with Optional Favorite Icon Overlay
             Expanded(
-              child: Center(
-                child: SizedBox(
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: _buildProductImage(product.imageUrl),
-                ),
+              child: Stack(
+                children: [
+                  Center(
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: _buildProductImage(product.imageUrl),
+                    ),
+                  ),
+                  if (onFavoriteTap != null)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: onFavoriteTap,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                          child: Icon(
+                            favState ? Icons.favorite : Icons.favorite_border,
+                            color: favState ? Colors.red : AppColors.textSecondary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
 

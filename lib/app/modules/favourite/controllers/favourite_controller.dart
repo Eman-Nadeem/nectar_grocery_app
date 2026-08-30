@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/data/models/product_model.dart';
@@ -15,19 +16,46 @@ class FavouriteController extends GetxController {
   void onInit() {
     super.onInit();
     loadFavorites();
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      loadFavorites();
+    });
   }
 
   Future<void> loadFavorites() async {
     isLoading.value = true;
-    final allProducts = await _productRepository.getAllProducts();
-    final favs = allProducts.where((p) => p.isFavorite).toList();
-    favoriteItems.assignAll(favs);
-    isLoading.value = false;
+    final user = FirebaseAuth.instance.currentUser;
+    final uid = user?.uid ?? '';
+    if (uid.isEmpty) {
+      favoriteItems.clear();
+      isLoading.value = false;
+      return;
+    }
+
+    try {
+      final userFavIds = await _productRepository.getUserFavoriteIds(uid);
+      final allProducts = await _productRepository.getAllProducts();
+      for (final p in allProducts) {
+        p.isFavorite = userFavIds.contains(p.id);
+      }
+      final favs = allProducts.where((p) => p.isFavorite).toList();
+      favoriteItems.assignAll(favs);
+    } catch (e) {
+      debugPrint('Error loading user favorites: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<void> toggleFavorite(ProductModel product) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final uid = user?.uid ?? '';
+    if (uid.isEmpty) {
+      Utils.toastMessage('Please sign in to save favorites', backgroundColor: Colors.orange);
+      return;
+    }
+
     product.isFavorite = !product.isFavorite;
-    await _productRepository.toggleFavoriteStatus(product.id, !product.isFavorite);
+    await _productRepository.toggleUserFavorite(uid, product.id, product.isFavorite);
     if (!product.isFavorite) {
       favoriteItems.removeWhere((p) => p.id == product.id);
     } else if (!favoriteItems.any((p) => p.id == product.id)) {

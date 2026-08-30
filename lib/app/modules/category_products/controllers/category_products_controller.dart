@@ -35,7 +35,17 @@ class CategoryProductsController extends GetxController {
       isLoading.value = true;
       final allProducts = await _repository.getAllProducts();
 
-      // Inter-link filter by category id or name
+      if (category.id == 'exclusive_offer') {
+        categoryProducts.assignAll(allProducts.where((p) => p.isExclusive).toList());
+        return;
+      }
+
+      if (category.id == 'best_selling') {
+        categoryProducts.assignAll(allProducts.where((p) => p.isBestSelling).toList());
+        return;
+      }
+
+      // Filter by category id or name
       final filtered = allProducts.where((p) {
         final catLower = p.category.toLowerCase();
         final nameLower = category.name.toLowerCase();

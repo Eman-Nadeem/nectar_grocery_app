@@ -32,32 +32,37 @@ class CartView extends GetView<CartController> {
         child: Obx(() {
           if (controller.cartItems.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.shopping_cart_outlined,
-                    size: 90,
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    'Your Cart is Empty',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.shopping_cart_outlined,
+                      size: 90,
+                      color: AppColors.primary.withValues(alpha: 0.4),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Explore products and add them to your cart!',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
+                    const SizedBox(height: 15),
+                    const Text(
+                      'Your Cart is Empty',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Explore products and add them to your cart!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -169,35 +174,33 @@ class CartView extends GetView<CartController> {
               const Divider(height: 20, thickness: 1),
 
               // Row 1: Delivery Method
-              _buildCheckoutRow(
-                label: 'Delivery',
-                trailing: 'Select Method',
-                onTap: () {},
+              Obx(
+                () => _buildCheckoutRow(
+                  label: 'Delivery Method',
+                  trailing: controller.selectedDeliveryMethod.value,
+                  onTap: () => _showDeliveryMethodPicker(context),
+                ),
               ),
               const Divider(height: 20, thickness: 1),
 
               // Row 2: Payment Method
-              _buildCheckoutRow(
-                label: 'Payment',
-                trailingIcon: Icons.credit_card,
-                onTap: () {},
+              Obx(
+                () => _buildCheckoutRow(
+                  label: 'Payment Method',
+                  trailing: controller.selectedPaymentMethod.value,
+                  onTap: () => _showPaymentMethodPicker(context),
+                ),
               ),
               const Divider(height: 20, thickness: 1),
 
-              // Row 3: Promo Code
-              _buildCheckoutRow(
-                label: 'Promo Code',
-                trailing: 'Pick discount',
-                onTap: () {},
-              ),
-              const Divider(height: 20, thickness: 1),
-
-              // Row 4: Total Cost
-              _buildCheckoutRow(
-                label: 'Total Cost',
-                trailing: '\$${controller.totalPrice.toStringAsFixed(2)}',
-                isBoldPrice: true,
-                onTap: () {},
+              // Row 3: Total Cost
+              Obx(
+                () => _buildCheckoutRow(
+                  label: 'Total Cost',
+                  trailing: '\$${controller.totalPrice.toStringAsFixed(2)}',
+                  isBoldPrice: true,
+                  onTap: () {},
+                ),
               ),
               const Divider(height: 20, thickness: 1),
 
@@ -257,6 +260,84 @@ class CartView extends GetView<CartController> {
     );
   }
 
+  void _showDeliveryMethodPicker(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Delivery Method',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 15),
+            ...controller.deliveryOptions.map((option) {
+              return Obx(() {
+                final isSelected = controller.selectedDeliveryMethod.value == option;
+                return ListTile(
+                  leading: Icon(
+                    isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                  ),
+                  title: Text(option, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600)),
+                  onTap: () {
+                    controller.setDeliveryMethod(option);
+                    Get.back();
+                  },
+                );
+              });
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPaymentMethodPicker(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Payment Method',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 15),
+            ...controller.paymentOptions.map((option) {
+              return Obx(() {
+                final isSelected = controller.selectedPaymentMethod.value == option;
+                return ListTile(
+                  leading: Icon(
+                    isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                  ),
+                  title: Text(option, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600)),
+                  onTap: () {
+                    controller.setPaymentMethod(option);
+                    Get.back();
+                  },
+                );
+              });
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCheckoutRow({
     required String label,
     String? trailing,
@@ -274,27 +355,36 @@ class CartView extends GetView<CartController> {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textSecondary,
               ),
             ),
-            Row(
-              children: [
-                if (trailingIcon != null)
-                  Icon(trailingIcon, color: AppColors.primary, size: 20)
-                else if (trailing != null)
-                  Text(
-                    trailing,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: isBoldPrice ? FontWeight.bold : FontWeight.w600,
-                      color: AppColors.textPrimary,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (trailingIcon != null)
+                    Icon(trailingIcon, color: AppColors.primary, size: 20)
+                  else if (trailing != null)
+                    Flexible(
+                      child: Text(
+                        trailing,
+                        textAlign: TextAlign.end,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: isBoldPrice ? FontWeight.bold : FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                     ),
-                  ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textPrimary),
-              ],
+                  const SizedBox(width: 6),
+                  const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textPrimary),
+                ],
+              ),
             ),
           ],
         ),

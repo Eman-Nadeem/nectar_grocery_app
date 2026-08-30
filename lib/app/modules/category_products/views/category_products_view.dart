@@ -39,24 +39,28 @@ class CategoryProductsView extends GetView<CategoryProductsController> {
 
           if (controller.categoryProducts.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 80,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(height: 15),
-                  Text(
-                    'No products found in ${controller.category.name}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.inventory_2_outlined,
+                      size: 80,
+                      color: AppColors.textSecondary,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 15),
+                    Text(
+                      'No products found in ${controller.category.name}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
