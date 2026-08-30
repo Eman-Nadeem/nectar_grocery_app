@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:nectar_grocery/app/data/models/order_model.dart';
+import 'package:nectar_grocery/app/utils/crashlytics_service.dart';
 
 class OrderRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -12,8 +13,9 @@ class OrderRepository {
       final docRef = _firestore.collection(_collection).doc();
       await docRef.set(order.toMap());
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error creating order in Firestore: $e');
+      CrashlyticsService.recordError(e, stack, reason: 'Firestore create order failed');
       return false;
     }
   }
@@ -29,8 +31,9 @@ class OrderRepository {
       return snapshot.docs
           .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
           .toList();
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error fetching all orders: $e');
+      CrashlyticsService.recordError(e, stack, reason: 'Firestore fetch all orders failed');
       return [];
     }
   }
@@ -42,8 +45,9 @@ class OrderRepository {
         'status': newStatus,
       });
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error updating order status: $e');
+      CrashlyticsService.recordError(e, stack, reason: 'Firestore update order status failed');
       return false;
     }
   }

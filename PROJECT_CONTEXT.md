@@ -103,6 +103,18 @@ Files: [`admin_view.dart`](file:///d:/nectar_grocery_app/lib/app/modules/admin/v
 
 ---
 
+### 🛡️ F. Real-Time Crash Reporting & Error Logging (Firebase Crashlytics)
+- **Automatic Error Interception**: `FlutterError.onError` captures UI/framework fatal crashes, while `PlatformDispatcher.instance.onError` intercepts unhandled async background errors in `main.dart`.
+- **Selective Non-Fatal Error Logging ([`CrashlyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/crashlytics_service.dart))**:
+  - `StorageRepository`: Logs Cloudinary image upload network errors and HTTP status failures.
+  - `ProductRepository`: Logs Firestore read/write/delete/favorite errors and model deserialization crashes.
+  - `OrderRepository`: Logs order creation and admin order update failures.
+  - `CategoryRepository`: Logs category query and mutation errors.
+  - `AuthController`: Logs GPS Geolocator location timeouts and reverse geocoding failures.
+- **Android Native Gradle Setup**: Plugin IDs added in `android/settings.gradle.kts` and applied in `android/app/build.gradle.kts` for release mapping file upload and native crash symbolication.
+
+---
+
 ## 3. Registered Routes Sitemap
 
 | Route Constant | Path | View | Binding | Description |

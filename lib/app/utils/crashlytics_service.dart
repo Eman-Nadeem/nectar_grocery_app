@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
@@ -28,9 +29,18 @@ class CrashlyticsService {
     );
   }
 
-  /// Set User Identifier for crash reports
-  static Future<void> setUserIdentifier(String identifier) async {
-    await _crashlytics.setUserIdentifier(identifier);
+  /// Set User Identifier and email for crash reports cleanly
+  static Future<void> setUserIdentifier(dynamic userOrUid) async {
+    if (userOrUid is User) {
+      await _crashlytics.setUserIdentifier(userOrUid.uid);
+      if (userOrUid.email != null && userOrUid.email!.isNotEmpty) {
+        await _crashlytics.setCustomKey('email', userOrUid.email!);
+      }
+    } else if (userOrUid is String) {
+      await _crashlytics.setUserIdentifier(userOrUid);
+    } else {
+      await _crashlytics.setUserIdentifier('');
+    }
   }
 
   /// Set custom key-value pairs for debugging context
@@ -39,7 +49,14 @@ class CrashlyticsService {
   }
 
   /// Force a test crash (Use only for verifying Crashlytics setup)
-  static void forceCrash() {
+  static Future<void> forceCrash() async {
+    await _crashlytics.log('Test crash button tapped by user');
+    await _crashlytics.recordError(
+      StateError('Manual Test Error triggered via CrashlyticsService'),
+      StackTrace.current,
+      reason: 'Testing Crashlytics setup',
+      fatal: false,
+    );
     _crashlytics.crash();
   }
 }

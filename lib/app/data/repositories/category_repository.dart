@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:nectar_grocery/app/data/models/category_model.dart';
+import 'package:nectar_grocery/app/utils/crashlytics_service.dart';
 
 class CategoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,8 +15,9 @@ class CategoryRepository {
       return snapshot.docs
           .map((doc) => CategoryModel.fromMap(doc.data(), doc.id))
           .toList();
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error fetching categories from Firestore: $e');
+      CrashlyticsService.recordError(e, stack, reason: 'Firestore get categories failed');
       return [];
     }
   }
@@ -32,8 +34,9 @@ class CategoryRepository {
         'createdAt': FieldValue.serverTimestamp(),
       });
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error adding category: $e');
+      CrashlyticsService.recordError(e, stack, reason: 'Firestore add category failed');
       return false;
     }
   }
@@ -48,8 +51,9 @@ class CategoryRepository {
         'borderColor': category.borderColor.toARGB32(),
       });
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error updating category: $e');
+      CrashlyticsService.recordError(e, stack, reason: 'Firestore update category failed');
       return false;
     }
   }
@@ -59,8 +63,9 @@ class CategoryRepository {
     try {
       await _firestore.collection(_collection).doc(id).delete();
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error deleting category: $e');
+      CrashlyticsService.recordError(e, stack, reason: 'Firestore delete category failed');
       return false;
     }
   }

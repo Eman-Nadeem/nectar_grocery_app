@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-// import 'package:firebase_storage/firebase_storage.dart';
+import 'package:nectar_grocery/app/utils/crashlytics_service.dart';
 
 class StorageRepository {
   // --- Old Firebase Storage Code (Commented Out) ---
@@ -43,10 +43,20 @@ class StorageRepository {
         return secureUrl;
       } else {
         debugPrint("Cloudinary Upload failed status code: ${response.statusCode}");
+        CrashlyticsService.recordError(
+          'Cloudinary Upload Failed HTTP ${response.statusCode}',
+          StackTrace.current,
+          reason: 'Cloudinary upload returned status ${response.statusCode}',
+        );
         return null;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error uploading image to Cloudinary: $e");
+      CrashlyticsService.recordError(
+        e,
+        stack,
+        reason: 'Cloudinary image upload network exception',
+      );
       return null;
     }
   }

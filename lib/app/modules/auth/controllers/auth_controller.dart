@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/modules/home/controllers/home_controller.dart';
 import 'package:nectar_grocery/app/modules/profile/controllers/profile_controller.dart';
+import 'package:nectar_grocery/app/utils/crashlytics_service.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/utils.dart';
 
@@ -127,10 +128,11 @@ class AuthController extends GetxController {
             timeLimit: Duration(seconds: 10),
           ),
         );
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint(
           'getCurrentPosition failed: $e. Trying last known position...',
         );
+        CrashlyticsService.recordError(e, stack, reason: 'GPS Geolocator position fetch failed');
         position = await Geolocator.getLastKnownPosition();
       }
 
@@ -142,8 +144,9 @@ class AuthController extends GetxController {
             position.latitude,
             position.longitude,
           ).timeout(const Duration(seconds: 5), onTimeout: () => []);
-        } catch (e) {
+        } catch (e, stack) {
           debugPrint('Geocoding failed: $e');
+          CrashlyticsService.recordError(e, stack, reason: 'Reverse Geocoding placemark coordinates failed');
         }
 
         if (placemarks.isNotEmpty) {

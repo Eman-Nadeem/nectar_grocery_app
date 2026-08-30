@@ -12,6 +12,9 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Enable Crashlytics data collection for both debug and release testing
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+
   // Pass all uncaught fatal errors from the framework to Crashlytics
   FlutterError.onError = (errorDetails) {
     FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);

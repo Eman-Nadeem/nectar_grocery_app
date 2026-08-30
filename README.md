@@ -45,6 +45,10 @@
   - **Profile Avatar with Username Initials**: Displays user initials (e.g. **`EN`** for `Eman Nadeem`) on a green avatar background when no profile photo is selected.
   - **My Details Page ([`MyDetailsView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_details_view.dart))**: Edit profile info, phone number, and profile photo upload with camera overlay button.
 
+- **🛡️ Real-Time Error Logging & Crash Reporting**:
+  - Integrated **Firebase Crashlytics** for real-time fatal crash tracking and unhandled async error capture.
+  - Custom [`CrashlyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/crashlytics_service.dart) for selective non-fatal error logging across Firestore repositories, Cloudinary upload, and GPS location services.
+
 - **🛠️ Admin Dashboard (3-Tab Management)**:
   - **Tab 1: Products**: Catalog list with floating Add button, edit/delete actions, gallery image picker, Cloudinary upload, and mandatory Cloud Firestore category dropdown.
   - **Tab 2: Categories**: Line-by-line ListView layout displaying thumbnails, category title, edit pencil, delete trash icon, image picker, and 6 light primary theme color dropdown.
@@ -56,7 +60,7 @@
 
 - **Framework**: [Flutter](https://flutter.dev/) (Dart)
 - **State Management & Routing**: [GetX](https://pub.dev/packages/get)
-- **Backend & Database**: [Firebase Auth](https://firebase.google.com/) & [Cloud Firestore](https://firebase.google.com/docs/firestore)
+- **Backend & Database**: [Firebase Auth](https://firebase.google.com/), [Cloud Firestore](https://firebase.google.com/docs/firestore), & [Firebase Crashlytics](https://firebase.google.com/docs/crashlytics)
 - **Location & GPS**: [geolocator](https://pub.dev/packages/geolocator) & [geocoding](https://pub.dev/packages/geocoding)
 - **Image Storage**: [Cloudinary API](https://cloudinary.com/) & [image_picker](https://pub.dev/packages/image_picker)
 - **Formatting & Utils**: [intl](https://pub.dev/packages/intl) & [pinput](https://pub.dev/packages/pinput)
