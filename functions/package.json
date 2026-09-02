@@ -1,0 +1,20 @@
+{
+  "name": "nectar-grocery-functions",
+  "description": "Firebase Cloud Functions for Nectar Grocery App - Order Updates & Product Broadcast Notifications",
+  "scripts": {
+    "serve": "firebase serve --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^7.3.2"
+  },
+  "private": true
+}

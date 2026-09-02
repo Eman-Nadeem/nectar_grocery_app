@@ -1,9 +1,10 @@
 # Nectar Grocery App - Project Context & Documentation 🛒📱
 
 > **Last Updated**: September 02, 2026  
-> **Framework**: Flutter 3.x (Dart)  
+> **Framework**: Flutter 3.x (Dart SDK ^3.11.5)  
 > **State Management & Routing**: GetX Pattern  
-> **Backend**: Firebase Authentication & Cloud Firestore  
+> **Backend**: Firebase Authentication, Cloud Firestore & Firebase Cloud Functions (v2)  
+> **Push Notifications**: Firebase Cloud Messaging (FCM) & Topics  
 > **Media Storage**: Cloudinary (HTTP Multipart Upload API) & Firebase Storage  
 > **Dynamic Config & Messaging**: Firebase Remote Config & Firebase In-App Messaging  
 > **Observability & Analytics**: Firebase Crashlytics & Firebase Analytics  
@@ -17,35 +18,60 @@ The application is structured using GetX Feature Modules (`lib/app/modules/`). E
 
 ```text
 lib/
-├── app/
-│   ├── components/            # Shared UI components (ProductCard, GroceryCategoryCard, CustomTextField)
-│   ├── data/
-│   │   ├── models/            # ProductModel, CategoryModel, OrderModel, UserModel, CartItemModel
-│   │   └── repositories/      # ProductRepository, CategoryRepository, OrderRepository, StorageRepository
-│   ├── modules/
-│   │   ├── admin/             # Admin Dashboard 3-tab management (Products, Categories, Orders)
-│   │   ├── auth/              # Login, SignUp, Onboarding (Number, Verification, Location with GPS)
-│   │   ├── cart/              # Cart View, Free Delivery Progress Bar & Checkout Sheet
-│   │   ├── category_products/ # Products list filtered by Category ID
-│   │   ├── explore/           # Explore category grid & real-time product search
-│   │   ├── favourite/         # Favorite products synced with Firestore
-│   │   ├── home/              # Main Shop view with 5 BottomNav tabs & dynamic Location Header
-│   │   ├── onboarding/        # 3-Page Onboarding Carousel with Remote Config copy & active dots
-│   │   ├── profile/           # User Profile, My Orders tracking, My Details & Role-based Admin link
-│   │   └── splash/            # Splash screen, Remote Config maintenance check & Auth State check
-│   ├── routes/                # AppRoutes & AppPages
-│   └── utils/                 # AppColors, ImageStrings, RemoteConfigService, AnalyticsService, CrashlyticsService
+├── firebase_options.dart
+├── main.dart                          # App Entrypoint, FCM Background Handler & Error Interceptors
+└── app/
+    ├── components/                    # Shared UI components (ProductCard, GroceryCategoryCard, CustomTextField)
+    ├── data/
+    │   ├── models/                    # ProductModel, CategoryModel, OrderModel, UserModel, CartItemModel
+    │   └── repositories/              # ProductRepository, CategoryRepository, OrderRepository, StorageRepository
+    ├── modules/
+    │   ├── admin/                     # Admin Dashboard 3-tab management (Products, Categories, Orders)
+    │   ├── auth/                      # Login, SignUp, Onboarding (Number, Verification, Location with GPS)
+    │   ├── cart/                      # Cart View, Free Delivery Progress Bar & Checkout Sheet
+    │   ├── category_products/         # Products list filtered by Category ID
+    │   ├── explore/                   # Explore category grid & real-time product search
+    │   ├── favourite/                 # Favorite products synced with Firestore
+    │   ├── home/                      # Main Shop view with 5 BottomNav tabs & dynamic Location Header
+    │   ├── onboarding/                # 3-Page Onboarding Carousel with Remote Config copy & active dots
+    │   ├── profile/                   # User Profile, My Orders tracking, My Details & Role-based Admin link
+    │   └── splash/                    # Splash screen, Remote Config maintenance check & Auth State check
+    ├── routes/                        # AppRoutes & AppPages
+    └── utils/                         # AppColors, ImageStrings, RemoteConfigService, AnalyticsService, CrashlyticsService, NotificationService
+functions/
+├── index.js                           # Cloud Functions (Order Status Push & New Product Broadcast)
+├── package.json                       # Node.js dependencies (firebase-admin, firebase-functions v2)
+└── firebase.json                      # Workspace Firebase deployment descriptor
 ```
 
 ---
 
 ## 2. Completed Features & Implementation Details
 
-### 🔐 A. Authentication & 3-Step Onboarding Flow with Real GPS
+### 🔔 A. Phase 3: Firebase Cloud Messaging (FCM) & Push Notifications
+- **Centralized Service ([`NotificationService`](file:///d:/nectar_grocery_app/lib/app/utils/notification_service.dart))**:
+  - Handles permission requests, device FCM token retrieval (`getToken()`), token refresh listeners, and topic subscription (`all_users`).
+  - Stores/syncs device `fcmToken` to Cloud Firestore under `users/{uid}/fcmToken`.
+  - Displays toast banner for foreground push messages and handles deep-link route navigation on notification tap from background or terminated states.
+- **Top-Level Background Handler ([`main.dart`](file:///d:/nectar_grocery_app/lib/main.dart))**:
+  - Annotated with `@pragma('vm:entry-point')` to prevent Dart VM isolate tree-shaking in release builds.
+
+---
+
+### ⚡ B. Phase 3: Firebase Cloud Functions Backend (`functions/`)
+- **Order Status Update Trigger (`onOrderStatusUpdated`)**:
+  - Triggers automatically when an Admin updates an order document (`orders/{orderId}`).
+  - Retrieves buyer's `userId`, queries their `fcmToken` from Firestore `users/{userId}`, and dispatches a high-priority targeted push notification: *"Your order #XXXXXXXX status has been updated to Processing/Delivered"*.
+- **New Product Broadcast Trigger (`onNewProductAdded`)**:
+  - Triggers automatically when a new product is added in the Admin Dashboard (`products/{productId}`).
+  - Sends a broadcast push notification to topic `/topics/all_users`: *"New Item Alert 🛒 [Product Name] ($XX.XX) is now available!"*.
+
+---
+
+### 🔐 C. Authentication & 3-Step Onboarding Flow with Real GPS
 - **3-Page Onboarding Walkthrough (`OnboardingView` & `OnboardingController`)**:
-  - 3 background illustrations (`onboarding_bg.png`, `onboarding_bg2.jpg`, `onboarding_bg3.jpg`).
-  - Headlines, subtitles, and CTA button text dynamically fetched from **Firebase Remote Config** with local fallback defaults.
-  - Unified single-column bottom layout eliminating text/dot overlap, featuring smooth `AnimatedSwitcher` page transitions.
+  - Headlines, subtitles, and CTA text dynamically fetched from **Firebase Remote Config**.
+  - Fixed parent data layout issue inside `PageView.builder` to guarantee 0 framework rendering crashes.
   - Step completion event logging (`onboarding_completed`).
 - **Deferred Account Creation**: Credentials saved locally on `SignUpView` and committed to Firebase Auth only after completing the location step.
 - **Screen 1: Mobile Number (`NumberView`)**: Editable country code (`+92`) + mobile number input.
@@ -54,61 +80,36 @@ lib/
 
 ---
 
-### 📦 B. E-Commerce Checkout, Dynamic Free Delivery & Order Tracking
+### 📦 D. E-Commerce Checkout, Dynamic Free Delivery & Order Tracking
 - **Dynamic Free Delivery Progress Banner (`CartView` & `CartController`)**:
   - Automatically calculates subtotal against `free_delivery_threshold` (default: `$50.0`).
   - Below threshold: Displays *"Add $XX.XX more for FREE Delivery!"* with a real-time progress indicator bar.
   - Threshold reached: Unlocks **`Standard Delivery (FREE)`** dynamically and fires the `unlocked_free_delivery` In-App Event.
-  - Removed static "Free" string from standard shipping dropdowns so delivery fee is strictly conditional.
-- **Interactive Cart**: Item quantity controls, live total updates, and swipe-to-delete.
-- **Checkout Sheet**: Delivery method selection, Payment option, Promo Code, Total Cost, and Place Order button.
-- **Cloud Firestore Orders Collection**: Saves order documents under `orders/{orderId}` with status, items breakdown, user email, and timestamp.
-- **Celebration Screen ([`OrderAcceptedView`](file:///d:/nectar_grocery_app/lib/app/modules/cart/views/order_accepted_view.dart))**: Centered checkmark celebration asset + **Track Order** button. Triggers In-App Event `order_placed_success`.
-- **My Orders Page ([`MyOrdersView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_orders_view.dart))**: Status tracking badges: 🟢 *Accepted*, 🟠 *Processing*, 🔵 *Delivered*, 🔴 *Cancelled*.
+- **Interactive Cart**: Quantity modifiers, subtotal calculations, and item deletion.
+- **Checkout Sheet & Orders**: Saves order documents under `orders/{orderId}`.
+- **Celebration Screen ([`OrderAcceptedView`](file:///d:/nectar_grocery_app/lib/app/modules/cart/views/order_accepted_view.dart))**: Triggers `order_placed_success`.
+- **My Orders Page ([`MyOrdersView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_orders_view.dart))**: Status badges: 🟢 *Accepted*, 🟠 *Processing*, 🔵 *Delivered*, 🔴 *Cancelled*.
 
 ---
 
-### 👤 C. Profile & My Details Management
-- **Avatar with Username Initials**: Displays user initials (e.g. **`EN`** for `Eman Nadeem`) on a green avatar background when no profile photo is uploaded.
-- **My Details Page ([`MyDetailsView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_details_view.dart))**: Live Firestore profile editing with camera overlay photo selection.
-- **Role-Based Admin Access**: Role verification checks `users/{uid}` in Cloud Firestore. Displays the **Admin Dashboard** tile **ONLY if** `isAdmin == true` or `role == 'admin'`.
+### 👤 E. Profile & My Details Management
+- **Avatar with Username Initials**: Displays user initials on a green avatar background.
+- **My Details Page ([`MyDetailsView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_details_view.dart))**: Live Firestore profile editing with photo selection.
+- **Role-Based Admin Access**: Displays Admin Dashboard tile **ONLY if** `isAdmin == true` or `role == 'admin'`.
 
 ---
 
-### 🛠️ D. Admin Dashboard (3-Tab Management)
-Files: [`admin_view.dart`](file:///d:/nectar_grocery_app/lib/app/modules/admin/views/admin_view.dart) & [`admin_controller.dart`](file:///d:/nectar_grocery_app/lib/app/modules/admin/controllers/admin_controller.dart)
-- **Tab 1: Products**: Catalog list with floating Add button, edit/delete actions, gallery image picker, Cloudinary upload, and category dropdown.
-- **Tab 2: Categories**: ListView displaying thumbnails, title, edit pencil, delete trash icon, image picker, and 6 primary theme color pickers.
-- **Tab 3: Customer Orders**: Real-time list of customer orders with live status modifier dropdown updating Firestore `orders`.
+### 🛠️ F. Admin Dashboard (3-Tab Management)
+- **Tab 1: Products**: Catalog list, Add/Edit/Delete actions, gallery image picker, Cloudinary upload.
+- **Tab 2: Categories**: Thumbnail ListView, title editor, 6 primary theme color pickers.
+- **Tab 3: Customer Orders**: Real-time customer order management with status updates triggering Cloud Functions push notifications.
 
 ---
 
-### 🌐 E. Phase 2: Firebase Remote Config & In-App Events / Messaging
-- **`RemoteConfigService` ([`remote_config_service.dart`](file:///d:/nectar_grocery_app/lib/app/utils/remote_config_service.dart))**:
-  - Initialized on startup via `Get.putAsync(() => RemoteConfigService().init())`.
-  - Configures safe local fallback parameters with real-time `fetchAndActivate()` logic.
-  - Captures fetch failures gracefully using `CrashlyticsService.recordError(...)`.
-- **12 Remote Config Parameters**:
-  - `onboarding_title_1..3`, `onboarding_subtitle_1..3`: Dynamic copy for 3 onboarding pages.
-  - `onboarding_button_text_next` & `onboarding_button_text_get_started`: Dynamic CTA buttons.
-  - `show_promo_banner` (bool) & `promo_banner_text` (string): Dynamic shop promo banner controls.
-  - `free_delivery_threshold` (double, default: `50.0`): Dynamic cart value target for free delivery.
-  - `is_under_maintenance` (bool, default: `false`): Full-screen app maintenance mode toggle.
-- **In-App Messaging & Events ([`AnalyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/analytics_service.dart))**:
-  - Direct SDK trigger via `FirebaseInAppMessaging.instance.triggerEvent(eventName)`.
-  - `order_placed_success`: Fires when a customer places an order.
-  - `unlocked_free_delivery`: Fires when cart subtotal reaches the Remote Config free delivery threshold.
-  - `item_favorited`: Fires when a user favorites a product.
-  - `onboarding_completed`: Fires when completing onboarding.
-
----
-
-### 🛡️ F. Real-Time Error Logging & Analytics (Crashlytics & Analytics)
-- **Automatic Error Interception**: `FlutterError.onError` captures fatal UI crashes, while `PlatformDispatcher.instance.onError` captures unhandled async background errors.
-- **Selective Non-Fatal Error Logging ([`CrashlyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/crashlytics_service.dart))**:
-  - Logs Cloudinary image upload failures, Firestore read/write errors, order creation errors, geolocator timeouts, and Remote Config fetch exceptions.
-- **Analytics Service ([`AnalyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/analytics_service.dart))**:
-  - Screen transition breadcrumbs (`FirebaseAnalyticsObserver`), `logAddToCart`, `logPurchase`, `logViewItem`, `logSearch`, `logLogin`, and `logSignUp`.
+### 🌐 G. Firebase Remote Config, Analytics & Crashlytics
+- **`RemoteConfigService`**: 12 parameters including dynamic onboarding copy, promo banners, free delivery thresholds, and maintenance mode.
+- **Crash Interception**: Framework fatal errors logged to Crashlytics via `FlutterError.onError` and `PlatformDispatcher.instance.onError`. Non-fatal network and repository errors captured via `CrashlyticsService`.
+- **Analytics Service**: E-commerce funnel analytics (`logAddToCart`, `logPurchase`, `logViewItem`, `logSearch`, `logLogin`, `logSignUp`).
 
 ---
 
@@ -132,8 +133,12 @@ Files: [`admin_view.dart`](file:///d:/nectar_grocery_app/lib/app/modules/admin/v
 
 - **Run Analysis**: `flutter analyze`
 - **Run Dev Server / Emulator**: `flutter run`
+- **Deploy Cloud Functions**:
+  ```bash
+  cd functions
+  firebase deploy --only functions
+  ```
 - **Build Release Split APKs**:
   ```bash
   flutter build apk --split-per-abi
   ```
-  *(Output file: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`)*

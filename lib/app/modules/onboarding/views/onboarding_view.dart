@@ -21,12 +21,10 @@ class OnboardingView extends GetView<OnboardingController> {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
-                return Positioned.fill(
-                  child: Image.asset(
-                    item.image,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                  ),
+                return Image.asset(
+                  item.image,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                 );
               },
             ),

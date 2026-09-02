@@ -17,6 +17,11 @@ Thumbs.db
 .svn/
 .swiftpm/
 migrate_working_dir/
+/node_modules
+/functions/node_modules
+firebase-debug.log
+firebase-debug.*.log
+.runtimeconfig.json
 
 # Flutter / Dart / Pub related
 .dart_tool/

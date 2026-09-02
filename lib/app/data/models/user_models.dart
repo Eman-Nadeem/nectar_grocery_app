@@ -7,6 +7,7 @@ class UserModel {
   final String area;
   final bool isAdmin;
   final String role;
+  final String fcmToken;
 
   UserModel({
     required this.uid,
@@ -17,6 +18,7 @@ class UserModel {
     required this.area,
     this.isAdmin = false,
     this.role = 'user',
+    this.fcmToken = '',
   });
 
   /// Convert Firestore document data into UserModel object
@@ -30,6 +32,7 @@ class UserModel {
       area: map['area'] ?? '',
       isAdmin: map['isAdmin'] ?? false,
       role: map['role'] ?? 'user',
+      fcmToken: map['fcmToken'] ?? '',
     );
   }
 
@@ -44,6 +47,7 @@ class UserModel {
       'area': area,
       'isAdmin': isAdmin,
       'role': role,
+      'fcmToken': fcmToken,
       'createdAt': DateTime.now().toIso8601String(),
     };
   }
