@@ -20,21 +20,32 @@
 ---
 
 > ✅ **Project Status**: **Phase 3 Complete & Production-Ready** (`flutter analyze`: 0 errors / 0 warnings)  
-> Integrated **Firebase Cloud Messaging (FCM)** and **Firebase Cloud Functions (v2)** alongside **Firebase Remote Config**, **In-App Messaging**, **Crashlytics**, **Analytics**, dynamic free delivery tracking, role-based admin dashboard, real-time GPS, and full e-commerce flows.
+> Integrated **Firebase Cloud Messaging (FCM)** and **Firebase Cloud Functions (v2)** alongside **Firebase Remote Config**, **In-App Messaging**, **Crashlytics**, **Analytics**, dual Email/Phone authentication credential linking, custom app launcher branding, dynamic free delivery tracking, role-based admin dashboard, real-time GPS, and full e-commerce flows.
 
 ---
 
 ## ✨ Key Features
 
+- **🔐 Authentication & Multi-Provider Credential Linking**:
+  - **Dual Email/Password & Phone Auth Linking ([`AuthController`](file:///d:/nectar_grocery_app/lib/app/modules/auth/controllers/auth_controller.dart))**: Automatically links Email/Password credentials (`currentUser.linkWithCredential`) when users sign up via Phone Auth OTP, enabling seamless sign-in with **both Email & Password** AND **Phone Auth**.
+  - 3-Page onboarding carousel with interactive step indicators.
+  - Deferred account creation committing credentials only after location selection.
+  - Mobile Number verification & 6-Digit PIN verification using **`pinput`** & Firebase Phone Auth.
+  - **Real-Time GPS Location Detection**: Powered by **`geolocator`** & **`geocoding`** with a strict 4-second timeout safeguard.
+
 - **🔔 Firebase Cloud Messaging (FCM) & Push Notifications (Phase 3)**:
   - Centralized singleton service [`NotificationService`](file:///d:/nectar_grocery_app/lib/app/utils/notification_service.dart) managing permissions, device FCM tokens, token refresh events, and topic subscriptions (`all_users`).
   - Automatically saves/syncs device `fcmToken` under Firestore `users/{uid}/fcmToken`.
+  - Integrates **`flutter_local_notifications`** with high-importance Android notification channel (`high_importance_channel`, `Importance.max`, `playSound: true`) to force native system heads-up alert banners & audio sounds when messages arrive in the foreground.
   - Top-level `@pragma('vm:entry-point')` background message handler in [`main.dart`](file:///d:/nectar_grocery_app/lib/main.dart) preventing tree-shaking crashes in release builds.
-  - Handles foreground notification toast banners and background/terminated notification tap routing.
 
 - **⚡ Firebase Cloud Functions Backend (Phase 3)**:
   - **`onOrderStatusUpdated`**: Automatically sends targeted push notifications to buyers when an admin updates their order status (`Accepted` ➔ `Processing` ➔ `Delivered`).
   - **`onNewProductAdded`**: Automatically broadcasts push notifications to topic `/topics/all_users` whenever a new product is added in the Admin Dashboard.
+
+- **🎨 App Branding & Launcher Icons**:
+  - **App Display Name**: `Nectar` across AndroidManifest.xml, Info.plist, and main.dart.
+  - **Adaptive Launcher Icons**: Configured `flutter_launcher_icons` (`carrot.png` foreground over `#53B175` Nectar primary green background with 20% safe-zone margin inset).
 
 - **🌐 Firebase Remote Config Integration (Phase 2)**:
   - Dedicated singleton wrapper [`RemoteConfigService`](file:///d:/nectar_grocery_app/lib/app/utils/remote_config_service.dart) with real-time `fetchAndActivate()` & local fallback defaults.
@@ -54,17 +65,6 @@
   - **Celebration Screen ([`OrderAcceptedView`](file:///d:/nectar_grocery_app/lib/app/modules/cart/views/order_accepted_view.dart))**: Centered checkmark celebration asset + **Track Order** button.
   - **My Orders Page ([`MyOrdersView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_orders_view.dart))**: Customer order tracking with status badges (🟢 *Accepted*, 🟠 *Processing*, 🔵 *Delivered*, 🔴 *Cancelled*).
 
-- **🔐 Authentication & 3-Step Onboarding**:
-  - 3-Page onboarding carousel with interactive step indicators.
-  - Deferred account creation committing credentials only after location selection.
-  - Mobile Number verification & 6-Digit PIN verification using **`pinput`** & Firebase Phone Auth.
-  - **Real-Time GPS Location Detection**: Powered by **`geolocator`** & **`geocoding`** with a strict 4-second timeout safeguard.
-
-- **🏠 Dynamic Shop & Navigation**:
-  - **5-Tab Bottom Navigation**: Shop, Explore, Cart, Favourite, Account.
-  - **Active Real-Time Search Bar**: Instant product search directly on both Shop and Explore screens.
-  - **Dynamic Inter-Linked Collections**: Products dynamically fetched from Cloud Firestore.
-
 - **👤 User Profile & My Details**:
   - **Profile Avatar with Username Initials**: Displays user initials on a green avatar background.
   - **My Details Page ([`MyDetailsView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_details_view.dart))**: Edit profile info, phone number, and photo upload.
@@ -73,10 +73,11 @@
   - Integrated **Firebase Crashlytics** capturing fatal crashes and unhandled async exceptions.
   - Integrated **Firebase Analytics** ([`AnalyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/analytics_service.dart)) recording screen view breadcrumbs and e-commerce conversion metrics.
 
-- **🛠️ Admin Dashboard (3-Tab Management)**:
+- **🛠️ Admin Dashboard & Android Build Configuration**:
   - **Tab 1: Products**: Catalog list, Add/Edit/Delete actions, gallery image picker, Cloudinary upload.
   - **Tab 2: Categories**: Thumbnail ListView, title editor, 6 primary theme color pickers.
   - **Tab 3: Customer Orders**: Real-time customer order list with status updates triggering automated Cloud Functions push notifications.
+  - **Java Core Library Desugaring ([`build.gradle.kts`](file:///d:/nectar_grocery_app/android/app/build.gradle.kts))**: Enabled `isCoreLibraryDesugaringEnabled = true` and `com.android.tools:desugar_jdk_libs:2.0.4` dependency.
 
 ---
 

@@ -1,12 +1,12 @@
 # Nectar App - Project Context & Documentation 🛒📱
 
 > **App Display Name**: `Nectar`  
-> **App Launcher Icon**: Carrot asset (`assets/icons/carrot.png`) over primary green background (`#53B175`)  
+> **App Launcher Icon**: Carrot asset (`assets/icons/carrot.png`) over primary green background (`#53B175`) with 20% safe-zone margin inset  
 > **Last Updated**: September 02, 2026  
 > **Framework**: Flutter 3.x (Dart SDK ^3.11.5)  
 > **State Management & Routing**: GetX Pattern  
 > **Backend**: Firebase Authentication, Cloud Firestore & Firebase Cloud Functions (v2)  
-> **Push Notifications**: Firebase Cloud Messaging (FCM) & Topics  
+> **Push Notifications**: Firebase Cloud Messaging (FCM), Local Notifications & Topics  
 > **Media Storage**: Cloudinary (HTTP Multipart Upload API) & Firebase Storage  
 > **Dynamic Config & Messaging**: Firebase Remote Config & Firebase In-App Messaging  
 > **Observability & Analytics**: Firebase Crashlytics & Firebase Analytics  
@@ -54,7 +54,8 @@ functions/
 - **Centralized Service ([`NotificationService`](file:///d:/nectar_grocery_app/lib/app/utils/notification_service.dart))**:
   - Handles permission requests, device FCM token retrieval (`getToken()`), token refresh listeners, and topic subscription (`all_users`).
   - Stores/syncs device `fcmToken` to Cloud Firestore under `users/{uid}/fcmToken`.
-  - Displays toast banner for foreground push messages and handles deep-link route navigation on notification tap from background or terminated states.
+  - Integrates **`flutter_local_notifications`** with high-importance Android notification channel (`high_importance_channel`, `Importance.max`, `playSound: true`) to force native system heads-up alert banners & audio sounds when messages arrive in the foreground.
+  - Handles deep-link route navigation on notification tap from background or terminated states.
 - **Top-Level Background Handler ([`main.dart`](file:///d:/nectar_grocery_app/lib/main.dart))**:
   - Annotated with `@pragma('vm:entry-point')` to prevent Dart VM isolate tree-shaking in release builds.
 
@@ -70,11 +71,10 @@ functions/
 
 ---
 
-### 🔐 C. Authentication & 3-Step Onboarding Flow with Real GPS
-- **3-Page Onboarding Walkthrough (`OnboardingView` & `OnboardingController`)**:
-  - Headlines, subtitles, and CTA text dynamically fetched from **Firebase Remote Config**.
-  - Fixed parent data layout issue inside `PageView.builder` to guarantee 0 framework rendering crashes.
-  - Step completion event logging (`onboarding_completed`).
+### 🔐 C. Authentication & Multi-Provider Credential Linking
+- **Dual Email/Password & Phone Credential Linking ([`AuthController`](file:///d:/nectar_grocery_app/lib/app/modules/auth/controllers/auth_controller.dart))**:
+  - Automatically invokes `currentUser.linkWithCredential(EmailAuthProvider.credential(email, password))` inside `saveUserProfile()`.
+  - Fixes credential isolation by linking the Email/Password provider to the Phone Auth user account created during OTP verification, enabling seamless login via **both Email & Password** AND **Phone Auth**.
 - **Deferred Account Creation**: Credentials saved locally on `SignUpView` and committed to Firebase Auth only after completing the location step.
 - **Screen 1: Mobile Number (`NumberView`)**: Editable country code (`+92`) + mobile number input.
 - **Screen 2: Verification (`VerificationView`)**: 6-digit OTP verification via **`pinput`** & Firebase Phone Auth.
@@ -101,10 +101,11 @@ functions/
 
 ---
 
-### 🛠️ F. Admin Dashboard (3-Tab Management)
+### 🛠️ F. Admin Dashboard & Android Build Configuration
 - **Tab 1: Products**: Catalog list, Add/Edit/Delete actions, gallery image picker, Cloudinary upload.
 - **Tab 2: Categories**: Thumbnail ListView, title editor, 6 primary theme color pickers.
 - **Tab 3: Customer Orders**: Real-time customer order management with status updates triggering Cloud Functions push notifications.
+- **Java Core Library Desugaring ([`build.gradle.kts`](file:///d:/nectar_grocery_app/android/app/build.gradle.kts))**: Enabled `isCoreLibraryDesugaringEnabled = true` and `com.android.tools:desugar_jdk_libs:2.0.4` dependency.
 
 ---
 
@@ -135,6 +136,7 @@ functions/
 
 - **Run Analysis**: `flutter analyze`
 - **Run Dev Server / Emulator**: `flutter run`
+- **Generate Launcher Icons**: `dart run flutter_launcher_icons`
 - **Deploy Cloud Functions**:
   ```bash
   cd functions
