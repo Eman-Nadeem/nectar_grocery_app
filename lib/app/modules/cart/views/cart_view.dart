@@ -67,8 +67,69 @@ class CartView extends GetView<CartController> {
             );
           }
 
+          final threshold = controller.freeDeliveryThreshold;
+          final isUnlocked = controller.isFreeDeliveryUnlocked;
+          final remaining = controller.remainingForFreeDelivery;
+          final progress = (controller.itemsSubtotal / threshold).clamp(0.0, 1.0);
+
           return Column(
             children: [
+              // Free Delivery Dynamic Progress Banner
+              Container(
+                margin: const EdgeInsets.fromLTRB(25, 15, 25, 5),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isUnlocked
+                      ? const Color(0xFFE8F5E9)
+                      : const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: isUnlocked
+                        ? const Color(0xFFA5D6A7)
+                        : const Color(0xFFFFE082),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          isUnlocked ? Icons.local_shipping : Icons.local_shipping_outlined,
+                          color: isUnlocked ? AppColors.primary : const Color(0xFFF57F17),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            isUnlocked
+                                ? '🎉 You unlocked FREE Standard Delivery!'
+                                : 'Add \$${remaining.toStringAsFixed(2)} more for FREE Delivery!',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: isUnlocked ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 6,
+                        backgroundColor: Colors.black.withValues(alpha: 0.08),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          isUnlocked ? AppColors.primary : const Color(0xFFFFB300),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               // Cart Items List
               Expanded(
                 child: ListView.separated(
@@ -138,7 +199,7 @@ class CartView extends GetView<CartController> {
     );
   }
 
-  // Checkout Bottom Sheet Matching Screenshot 1 Mockup
+  // Checkout Bottom Sheet Matching Design
   void _showCheckoutBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -177,7 +238,7 @@ class CartView extends GetView<CartController> {
               Obx(
                 () => _buildCheckoutRow(
                   label: 'Delivery Method',
-                  trailing: controller.selectedDeliveryMethod.value,
+                  trailing: controller.resolvedDeliveryMethodText,
                   onTap: () => _showDeliveryMethodPicker(context),
                 ),
               ),
@@ -280,12 +341,16 @@ class CartView extends GetView<CartController> {
             ...controller.deliveryOptions.map((option) {
               return Obx(() {
                 final isSelected = controller.selectedDeliveryMethod.value == option;
+                String displayTitle = option;
+                if (option.contains('Standard') && controller.isFreeDeliveryUnlocked) {
+                  displayTitle = 'Standard Delivery (FREE)';
+                }
                 return ListTile(
                   leading: Icon(
                     isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
                     color: isSelected ? AppColors.primary : AppColors.textSecondary,
                   ),
-                  title: Text(option, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600)),
+                  title: Text(displayTitle, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600)),
                   onTap: () {
                     controller.setDeliveryMethod(option);
                     Get.back();
@@ -392,7 +457,6 @@ class CartView extends GetView<CartController> {
     );
   }
 
-  // Cart Item Tile Matching Design Mockup
   Widget _buildCartItemTile(CartItemModel item) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

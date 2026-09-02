@@ -8,18 +8,19 @@ import 'package:nectar_grocery/app/data/repositories/order_repository.dart';
 import 'package:nectar_grocery/app/modules/cart/views/order_accepted_view.dart';
 import 'package:nectar_grocery/app/modules/profile/controllers/profile_controller.dart';
 import 'package:nectar_grocery/app/utils/analytics_service.dart';
+import 'package:nectar_grocery/app/utils/remote_config_service.dart';
 import 'package:nectar_grocery/app/utils/utils.dart';
 
 class CartController extends GetxController {
   final RxList<CartItemModel> cartItems = <CartItemModel>[].obs;
 
-  final RxString selectedDeliveryMethod = 'Standard Delivery (Free)'.obs;
+  final RxString selectedDeliveryMethod = 'Standard Delivery (\$3.00)'.obs;
   final RxString selectedPaymentMethod = 'Cash on Delivery'.obs;
 
   final List<String> deliveryOptions = const [
-    'Standard Delivery (Free)',
-    'Express Delivery (\$2.00)',
-    'Store Pickup (Free)',
+    'Standard Delivery (\$3.00)',
+    'Express Delivery (\$5.00)',
+    'Store Pickup',
   ];
 
   final List<String> paymentOptions = const [
@@ -36,16 +37,49 @@ class CartController extends GetxController {
     selectedPaymentMethod.value = method;
   }
 
+  /// Remote Config threshold for free delivery
+  double get freeDeliveryThreshold => RemoteConfigService.instance.freeDeliveryThreshold;
+
   /// Calculates subtotal of items in cart
   double get itemsSubtotal => cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
 
-  /// Delivery fee based on selected method
+  /// Check if free delivery threshold is reached
+  bool get isFreeDeliveryUnlocked => itemsSubtotal >= freeDeliveryThreshold && itemsSubtotal > 0;
+
+  /// Amount remaining to unlock free delivery
+  double get remainingForFreeDelivery {
+    final diff = freeDeliveryThreshold - itemsSubtotal;
+    return diff > 0 ? diff : 0.0;
+  }
+
+  /// Delivery fee calculation logic:
+  /// - Store Pickup: $0.00
+  /// - Standard Delivery: FREE if itemsSubtotal >= threshold, else $3.00
+  /// - Express Delivery: $5.00
   double get deliveryFee {
-    if (selectedDeliveryMethod.value.contains('${2.00}') ||
-        selectedDeliveryMethod.value.toLowerCase().contains('express')) {
-      return 2.0;
+    final method = selectedDeliveryMethod.value.toLowerCase();
+    if (method.contains('pickup')) {
+      return 0.0;
     }
-    return 0.0;
+    if (method.contains('express')) {
+      return 5.0;
+    }
+    // Standard delivery
+    return isFreeDeliveryUnlocked ? 0.0 : 3.0;
+  }
+
+  /// Resolved display text for selected delivery method
+  String get resolvedDeliveryMethodText {
+    final method = selectedDeliveryMethod.value;
+    if (method.toLowerCase().contains('pickup')) {
+      return 'Store Pickup (Free)';
+    }
+    if (method.toLowerCase().contains('express')) {
+      return 'Express Delivery (\$5.00)';
+    }
+    return isFreeDeliveryUnlocked
+        ? 'Standard Delivery (FREE)'
+        : 'Standard Delivery (\$3.00)';
   }
 
   /// Calculates grand total price of all items in cart + delivery fee
@@ -64,6 +98,10 @@ class CartController extends GetxController {
       cartItems.add(CartItemModel(product: product, quantity: 1));
     }
     AnalyticsService.logAddToCart(product);
+    
+    // In-App Event trigger when cart unlocks free delivery threshold set via Remote Config
+    _checkFreeDeliveryEventTrigger();
+    
     Utils.toastMessage('${product.name} added to cart', backgroundColor: Colors.green);
   }
 
@@ -71,6 +109,7 @@ class CartController extends GetxController {
   void incrementQuantity(CartItemModel item) {
     item.quantity++;
     cartItems.refresh();
+    _checkFreeDeliveryEventTrigger();
   }
 
   /// Decrement quantity (removes if quantity drops below 1)
@@ -92,6 +131,12 @@ class CartController extends GetxController {
   /// Clear entire cart
   void clearCart() {
     cartItems.clear();
+  }
+
+  void _checkFreeDeliveryEventTrigger() {
+    if (isFreeDeliveryUnlocked) {
+      AnalyticsService.logUnlockedFreeDelivery(itemsSubtotal);
+    }
   }
 
   /// Place Order and save to Cloud Firestore orders collection
@@ -123,7 +168,7 @@ class CartController extends GetxController {
       userEmail: resolvedEmail,
       items: orderItems,
       totalAmount: totalPrice,
-      deliveryMethod: selectedDeliveryMethod.value,
+      deliveryMethod: resolvedDeliveryMethodText,
       paymentMethod: selectedPaymentMethod.value,
       status: 'Accepted',
       createdAt: DateTime.now(),
@@ -134,6 +179,7 @@ class CartController extends GetxController {
 
     if (success) {
       AnalyticsService.logPurchase(newOrder);
+      AnalyticsService.logInAppEvent('order_placed_success');
       clearCart();
       Get.to(() => const OrderAcceptedView());
     } else {

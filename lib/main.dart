@@ -5,6 +5,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:nectar_grocery/app/utils/analytics_service.dart';
+import 'package:nectar_grocery/app/utils/remote_config_service.dart';
 import 'app/routes/app_pages.dart';
 import 'firebase_options.dart';
 
@@ -13,6 +14,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Firebase Remote Config service
+  await Get.putAsync(() => RemoteConfigService().init());
 
   // Enable Crashlytics data collection for both debug and release testing
   await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);

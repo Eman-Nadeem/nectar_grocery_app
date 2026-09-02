@@ -1,10 +1,12 @@
 # Nectar Grocery App - Project Context & Documentation 🛒📱
 
-> **Last Updated**: August 28, 2026  
+> **Last Updated**: September 02, 2026  
 > **Framework**: Flutter 3.x (Dart)  
 > **State Management & Routing**: GetX Pattern  
 > **Backend**: Firebase Authentication & Cloud Firestore  
 > **Media Storage**: Cloudinary (HTTP Multipart Upload API) & Firebase Storage  
+> **Dynamic Config & Messaging**: Firebase Remote Config & Firebase In-App Messaging  
+> **Observability & Analytics**: Firebase Crashlytics & Firebase Analytics  
 > **Static Analysis**: 0 Errors / 0 Warnings (`flutter analyze` clean)
 
 ---
@@ -23,15 +25,16 @@ lib/
 │   ├── modules/
 │   │   ├── admin/             # Admin Dashboard 3-tab management (Products, Categories, Orders)
 │   │   ├── auth/              # Login, SignUp, Onboarding (Number, Verification, Location with GPS)
-│   │   ├── cart/              # Cart View, Checkout Bottom Sheet & OrderAcceptedView celebration
+│   │   ├── cart/              # Cart View, Free Delivery Progress Bar & Checkout Sheet
 │   │   ├── category_products/ # Products list filtered by Category ID
 │   │   ├── explore/           # Explore category grid & real-time product search
 │   │   ├── favourite/         # Favorite products synced with Firestore
 │   │   ├── home/              # Main Shop view with 5 BottomNav tabs & dynamic Location Header
+│   │   ├── onboarding/        # 3-Page Onboarding Carousel with Remote Config copy & active dots
 │   │   ├── profile/           # User Profile, My Orders tracking, My Details & Role-based Admin link
-│   │   └── splash/            # Splash screen & Auth State check
+│   │   └── splash/            # Splash screen, Remote Config maintenance check & Auth State check
 │   ├── routes/                # AppRoutes & AppPages
-│   └── utils/                 # AppColors, ImageStrings, Utils (Toast feedback)
+│   └── utils/                 # AppColors, ImageStrings, RemoteConfigService, AnalyticsService, CrashlyticsService
 ```
 
 ---
@@ -39,90 +42,73 @@ lib/
 ## 2. Completed Features & Implementation Details
 
 ### 🔐 A. Authentication & 3-Step Onboarding Flow with Real GPS
-- **Deferred Account Creation**: Filling in Username, Email, and Password on `SignUpView` saves credentials locally. No account is created in Firebase Auth until the final location submission.
-- **Screen 1: Mobile Number (`NumberView`)**:
-  - Editable Country Code text field (`countryCodeController`, default `+92`).
-  - Mobile number input field with circular green floating advance button (`>`).
-- **Screen 2: Verification (`VerificationView`)**:
-  - Powered by the **`pinput`** package (supporting 6-digit OTP codes).
-  - Integrated with **Firebase Phone Auth** (`_auth.verifyPhoneNumber(...)`).
-- **Screen 3: Select Location (`SelectLocationView`)**:
-  - Location Illustration image asset (`assets/icons/location.png`), **Your Zone** dropdown, and **Your Area** dropdown.
-  - **"Use Current GPS Location" Button**: Powered by `geolocator` and `geocoding` reverse geocoding with a **4-second strict timeout & fallback safeguard** so UI execution never hangs on Android emulators.
-  - **Final Submit Button**: Executes `_auth.createUserWithEmailAndPassword(...)`, creates the `users/{user.uid}` document in Cloud Firestore, and redirects to `Routes.home`.
+- **3-Page Onboarding Walkthrough (`OnboardingView` & `OnboardingController`)**:
+  - 3 background illustrations (`onboarding_bg.png`, `onboarding_bg2.jpg`, `onboarding_bg3.jpg`).
+  - Headlines, subtitles, and CTA button text dynamically fetched from **Firebase Remote Config** with local fallback defaults.
+  - Unified single-column bottom layout eliminating text/dot overlap, featuring smooth `AnimatedSwitcher` page transitions.
+  - Step completion event logging (`onboarding_completed`).
+- **Deferred Account Creation**: Credentials saved locally on `SignUpView` and committed to Firebase Auth only after completing the location step.
+- **Screen 1: Mobile Number (`NumberView`)**: Editable country code (`+92`) + mobile number input.
+- **Screen 2: Verification (`VerificationView`)**: 6-digit OTP verification via **`pinput`** & Firebase Phone Auth.
+- **Screen 3: Select Location (`SelectLocationView`)**: Zone & Area selection with **GPS reverse geocoding** (`geolocator` & `geocoding`) featuring a 4-second strict timeout safeguard.
 
 ---
 
-### 📦 B. E-Commerce Checkout & Customer Order Tracking
-- **Interactive Cart (`CartView`)**: Item quantity controls, total calculation, and swipe-to-delete.
-- **Checkout Sheet**: Full Figma mockup (Delivery method, Payment option, Promo Code, Total Cost, and Place Order button).
-- **Cloud Firestore Orders Collection**: Tapping **Place Order** creates a document in `orders` storing:
-  ```json
-  orders / {orderId}
-  {
-    "id": "orderId",
-    "userId": "userUid",
-    "userEmail": "user@example.com",
-    "totalAmount": 24.99,
-    "status": "Accepted",
-    "items": [...],
-    "createdAt": "Timestamp"
-  }
-  ```
-- **Celebration Screen ([`OrderAcceptedView`](file:///d:/nectar_grocery_app/lib/app/modules/cart/views/order_accepted_view.dart))**: Perfectly centered checkmark graphic + **Track Order** button.
-- **My Orders Page ([`MyOrdersView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_orders_view.dart))**: Customer order tracking screen with color-coded status badges:
-  - 🟢 **Accepted**
-  - 🟠 **Processing**
-  - 🔵 **Delivered**
-  - 🔴 **Cancelled**
+### 📦 B. E-Commerce Checkout, Dynamic Free Delivery & Order Tracking
+- **Dynamic Free Delivery Progress Banner (`CartView` & `CartController`)**:
+  - Automatically calculates subtotal against `free_delivery_threshold` (default: `$50.0`).
+  - Below threshold: Displays *"Add $XX.XX more for FREE Delivery!"* with a real-time progress indicator bar.
+  - Threshold reached: Unlocks **`Standard Delivery (FREE)`** dynamically and fires the `unlocked_free_delivery` In-App Event.
+  - Removed static "Free" string from standard shipping dropdowns so delivery fee is strictly conditional.
+- **Interactive Cart**: Item quantity controls, live total updates, and swipe-to-delete.
+- **Checkout Sheet**: Delivery method selection, Payment option, Promo Code, Total Cost, and Place Order button.
+- **Cloud Firestore Orders Collection**: Saves order documents under `orders/{orderId}` with status, items breakdown, user email, and timestamp.
+- **Celebration Screen ([`OrderAcceptedView`](file:///d:/nectar_grocery_app/lib/app/modules/cart/views/order_accepted_view.dart))**: Centered checkmark celebration asset + **Track Order** button. Triggers In-App Event `order_placed_success`.
+- **My Orders Page ([`MyOrdersView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_orders_view.dart))**: Status tracking badges: 🟢 *Accepted*, 🟠 *Processing*, 🔵 *Delivered*, 🔴 *Cancelled*.
 
 ---
 
 ### 👤 C. Profile & My Details Management
 - **Avatar with Username Initials**: Displays user initials (e.g. **`EN`** for `Eman Nadeem`) on a green avatar background when no profile photo is uploaded.
-- **My Details Page ([`MyDetailsView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_details_view.dart))**: Form to update Full Name, Phone Number, and Profile Photo with a camera overlay button, saving live updates to Cloud Firestore `users/{userId}`.
-- **Role-Based Admin Access**: Queries `users/{uid}` in Cloud Firestore. Displays the **Admin Dashboard** tile **ONLY if** `isAdmin == true` or `role == 'admin'`. Hidden for all normal users.
+- **My Details Page ([`MyDetailsView`](file:///d:/nectar_grocery_app/lib/app/modules/profile/views/my_details_view.dart))**: Live Firestore profile editing with camera overlay photo selection.
+- **Role-Based Admin Access**: Role verification checks `users/{uid}` in Cloud Firestore. Displays the **Admin Dashboard** tile **ONLY if** `isAdmin == true` or `role == 'admin'`.
 
 ---
 
 ### 🛠️ D. Admin Dashboard (3-Tab Management)
 Files: [`admin_view.dart`](file:///d:/nectar_grocery_app/lib/app/modules/admin/views/admin_view.dart) & [`admin_controller.dart`](file:///d:/nectar_grocery_app/lib/app/modules/admin/controllers/admin_controller.dart)
-
-- **Tab 1: Products Management**:
-  - Catalog list with floating Add button, edit/delete actions, gallery image picker, Cloudinary upload, and mandatory Cloud Firestore category dropdown.
-- **Tab 2: Categories Management**:
-  - Line-by-line ListView layout displaying thumbnails, category title, edit pencil, delete trash icon, gallery image picker, and 6 light primary theme color dropdown.
-- **Tab 3: Customer Orders**:
-  - Real-time list of customer orders with live status update dropdown updating Firestore `orders`.
+- **Tab 1: Products**: Catalog list with floating Add button, edit/delete actions, gallery image picker, Cloudinary upload, and category dropdown.
+- **Tab 2: Categories**: ListView displaying thumbnails, title, edit pencil, delete trash icon, image picker, and 6 primary theme color pickers.
+- **Tab 3: Customer Orders**: Real-time list of customer orders with live status modifier dropdown updating Firestore `orders`.
 
 ---
 
-### 🔍 E. Dynamic Search & Inter-Linked Categories
-- **Shop & Explore Live Search**: Active search bars on both Shop and Explore screens filtering products dynamically from Cloud Firestore.
-- **Inter-Linked Categories**: Products linked via `categoryId` matching category IDs in Cloud Firestore (`products` and `categories` collections).
+### 🌐 E. Phase 2: Firebase Remote Config & In-App Events / Messaging
+- **`RemoteConfigService` ([`remote_config_service.dart`](file:///d:/nectar_grocery_app/lib/app/utils/remote_config_service.dart))**:
+  - Initialized on startup via `Get.putAsync(() => RemoteConfigService().init())`.
+  - Configures safe local fallback parameters with real-time `fetchAndActivate()` logic.
+  - Captures fetch failures gracefully using `CrashlyticsService.recordError(...)`.
+- **12 Remote Config Parameters**:
+  - `onboarding_title_1..3`, `onboarding_subtitle_1..3`: Dynamic copy for 3 onboarding pages.
+  - `onboarding_button_text_next` & `onboarding_button_text_get_started`: Dynamic CTA buttons.
+  - `show_promo_banner` (bool) & `promo_banner_text` (string): Dynamic shop promo banner controls.
+  - `free_delivery_threshold` (double, default: `50.0`): Dynamic cart value target for free delivery.
+  - `is_under_maintenance` (bool, default: `false`): Full-screen app maintenance mode toggle.
+- **In-App Messaging & Events ([`AnalyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/analytics_service.dart))**:
+  - Direct SDK trigger via `FirebaseInAppMessaging.instance.triggerEvent(eventName)`.
+  - `order_placed_success`: Fires when a customer places an order.
+  - `unlocked_free_delivery`: Fires when cart subtotal reaches the Remote Config free delivery threshold.
+  - `item_favorited`: Fires when a user favorites a product.
+  - `onboarding_completed`: Fires when completing onboarding.
 
 ---
 
-### 🛡️ F. Real-Time Crash Reporting & Error Logging (Firebase Crashlytics)
-- **Automatic Error Interception**: `FlutterError.onError` captures UI/framework fatal crashes, while `PlatformDispatcher.instance.onError` intercepts unhandled async background errors in `main.dart`.
+### 🛡️ F. Real-Time Error Logging & Analytics (Crashlytics & Analytics)
+- **Automatic Error Interception**: `FlutterError.onError` captures fatal UI crashes, while `PlatformDispatcher.instance.onError` captures unhandled async background errors.
 - **Selective Non-Fatal Error Logging ([`CrashlyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/crashlytics_service.dart))**:
-  - `StorageRepository`: Logs Cloudinary image upload network errors and HTTP status failures.
-  - `ProductRepository`: Logs Firestore read/write/delete/favorite errors and model deserialization crashes.
-  - `OrderRepository`: Logs order creation and admin order update failures.
-  - `CategoryRepository`: Logs category query and mutation errors.
-  - `AuthController`: Logs GPS Geolocator location timeouts and reverse geocoding failures.
-- **Android Native Gradle Setup**: Plugin IDs added in `android/settings.gradle.kts` and applied in `android/app/build.gradle.kts` for release mapping file upload and native crash symbolication.
-
----
-
-### 📊 G. E-Commerce & Navigation Analytics (Firebase Analytics)
-- **Screen View Breadcrumbs**: Attached `FirebaseAnalyticsObserver` in `main.dart` to record screen transitions (Shop, Explore, Cart, Favourites, Profile, Admin) providing breadcrumbs for Crashlytics reports.
-- **E-Commerce & User Events ([`AnalyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/analytics_service.dart))**:
-  - `logAddToCart`: Tracked in `CartController` when items are added to basket.
-  - `logPurchase`: Tracked in `CartController` on order checkout completion.
-  - `logViewItem`: Tracked in `ProductDetailsController` when viewing product details.
-  - `logSearch`: Tracked in `HomeController` via a 1-second debounced listener on search queries.
-  - `logLogin` & `logSignUp`: Tracked in `AuthController` on authentication success.
+  - Logs Cloudinary image upload failures, Firestore read/write errors, order creation errors, geolocator timeouts, and Remote Config fetch exceptions.
+- **Analytics Service ([`AnalyticsService`](file:///d:/nectar_grocery_app/lib/app/utils/analytics_service.dart))**:
+  - Screen transition breadcrumbs (`FirebaseAnalyticsObserver`), `logAddToCart`, `logPurchase`, `logViewItem`, `logSearch`, `logLogin`, and `logSignUp`.
 
 ---
 
@@ -130,8 +116,8 @@ Files: [`admin_view.dart`](file:///d:/nectar_grocery_app/lib/app/modules/admin/v
 
 | Route Constant | Path | View | Binding | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `Routes.splash` | `/splash` | `SplashView` | `SplashBinding` | Initial Auth state check |
-| `Routes.onboarding` | `/onboarding` | `OnboardingView` | `OnboardingBinding` | Welcome walkthrough |
+| `Routes.splash` | `/splash` | `SplashView` | `SplashBinding` | Initial Auth state check & Remote Config maintenance check |
+| `Routes.onboarding` | `/onboarding` | `OnboardingView` | `OnboardingBinding` | 3-Page Remote Config Onboarding walkthrough |
 | `Routes.login` | `/login` | `LoginView` | `AuthBinding` | Login screen |
 | `Routes.signup` | `/signup` | `SignUpView` | `AuthBinding` | SignUp credentials input |
 | `Routes.number` | `/number` | `NumberView` | `AuthBinding` | Onboarding Step 1: Phone |

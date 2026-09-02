@@ -1,10 +1,12 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:nectar_grocery/app/data/models/order_model.dart';
 import 'package:nectar_grocery/app/data/models/product_model.dart';
 
 class AnalyticsService {
   static final FirebaseAnalytics instance = FirebaseAnalytics.instance;
+  static final FirebaseInAppMessaging _inAppMessaging = FirebaseInAppMessaging.instance;
 
   /// Log screen transition
   static Future<void> logScreenView(String screenName) async {
@@ -111,4 +113,32 @@ class AnalyticsService {
       debugPrint('[Analytics Error] Purchase: $e');
     }
   }
+
+  /// Custom In-App Event Logger (Triggers Firebase In-App Messaging campaigns)
+  static Future<void> logInAppEvent(String eventName, {Map<String, Object>? parameters}) async {
+    try {
+      await instance.logEvent(name: eventName, parameters: parameters);
+      await _inAppMessaging.triggerEvent(eventName);
+      debugPrint('[In-App Event] Logged & Triggered: $eventName');
+    } catch (e) {
+      debugPrint('[Analytics Error] In-App Event ($eventName): $e');
+    }
+  }
+
+  /// Triggered when customer basket reaches free delivery threshold
+  static Future<void> logUnlockedFreeDelivery(double cartTotal) async {
+    await logInAppEvent('unlocked_free_delivery', parameters: {
+      'cart_total': cartTotal,
+    });
+  }
+
+  /// Triggered when user marks a product as favorite
+  static Future<void> logItemFavorited(ProductModel product) async {
+    await logInAppEvent('item_favorited', parameters: {
+      'product_id': product.id,
+      'product_name': product.name,
+      'price': product.price,
+    });
+  }
 }
+

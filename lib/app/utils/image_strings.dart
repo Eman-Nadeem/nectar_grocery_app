@@ -7,4 +7,7 @@ class ImageStrings {
 
   // Onboarding & Banners
   static const String onboardingBackground = 'assets/images/onboarding_bg.png';
+  static const String onboardingBackground1 = 'assets/images/onboarding_bg.png';
+  static const String onboardingBackground2 = 'assets/images/onboarding_bg2.jpg';
+  static const String onboardingBackground3 = 'assets/images/onboarding_bg3.jpg';
 }

@@ -10,6 +10,7 @@ import 'package:nectar_grocery/app/modules/favourite/views/favourite_view.dart';
 import 'package:nectar_grocery/app/modules/profile/views/profile_view.dart';
 import 'package:nectar_grocery/app/routes/app_routes.dart';
 import 'package:nectar_grocery/app/utils/app_colors.dart';
+import 'package:nectar_grocery/app/utils/remote_config_service.dart';
 import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -198,130 +199,123 @@ class HomeView extends GetView<HomeController> {
                 return SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Banner with Rich Vibrant Gradient Background
-                      Container(
-                        height: 135,
-                        width: double.infinity,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(18),
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFF53B175), // Nectar Primary Green
-                              Color(0xFF2E7D32), // Forest Green
-                              Color(0xFF1B5E20), // Deep Emerald
+                      // Banner controlled dynamically via Firebase Remote Config
+                      if (RemoteConfigService.instance.showPromoBanner) ...[
+                        Container(
+                          height: 135,
+                          width: double.infinity,
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF53B175), // Nectar Primary Green
+                                Color(0xFF2E7D32), // Forest Green
+                                Color(0xFF1B5E20), // Deep Emerald
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x3D53B175),
+                                blurRadius: 15,
+                                offset: Offset(0, 6),
+                              ),
                             ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
                           ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x3D53B175),
-                              blurRadius: 15,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          children: [
-                            // Decorative Background Accent Circles
-                            Positioned(
-                              right: -20,
-                              top: -20,
-                              child: Container(
-                                width: 140,
-                                height: 140,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withValues(alpha: 0.12),
+                          child: Stack(
+                            children: [
+                              Positioned(
+                                right: -20,
+                                top: -20,
+                                child: Container(
+                                  width: 140,
+                                  height: 140,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                  ),
                                 ),
                               ),
-                            ),
-                            Positioned(
-                              right: 40,
-                              bottom: -40,
-                              child: Container(
-                                width: 110,
-                                height: 110,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withValues(alpha: 0.08),
+                              Positioned(
+                                right: 40,
+                                bottom: -40,
+                                child: Container(
+                                  width: 110,
+                                  height: 110,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                  ),
                                 ),
                               ),
-                            ),
-                            // Banner Text & Action Button
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.25),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: const Text(
-                                            'SPECIAL PROMO',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 0.8,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.25),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: const Text(
+                                              'SPECIAL PROMO',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 0.8,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        const Text(
-                                          'Fresh Vegetables',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            RemoteConfigService.instance.promoBannerText,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        const Text(
-                                          'Get Up To 40% OFF',
-                                          style: TextStyle(
-                                            color: Color(0xFFFFD54F), // Amber Gold
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: AppColors.primary,
-                                      elevation: 2,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(25),
+                                        ],
                                       ),
                                     ),
-                                    onPressed: () => controller.changeNavIndex(1),
-                                    child: const Text(
-                                      'Shop Now',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: AppColors.primary,
+                                        elevation: 2,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                        ),
+                                      ),
+                                      onPressed: () => controller.changeNavIndex(1),
+                                      child: const Text(
+                                        'Shop Now',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 35),
+                        const SizedBox(height: 35),
+                      ],
 
                       // 1. Exclusive Offer Section
                       _buildSectionHeader('Exclusive Offer', () {
