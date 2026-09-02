@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Nectar Grocery App',
+      title: 'Nectar',
       theme: ThemeData(
         fontFamily: 'Montserrat',
       ),

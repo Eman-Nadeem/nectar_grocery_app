@@ -1,4 +1,4 @@
-# 🥕 Nectar Grocery App
+# 🥕 Nectar App
 
 <div align="center">
 

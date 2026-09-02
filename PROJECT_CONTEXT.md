@@ -1,5 +1,7 @@
-# Nectar Grocery App - Project Context & Documentation 🛒📱
+# Nectar App - Project Context & Documentation 🛒📱
 
+> **App Display Name**: `Nectar`  
+> **App Launcher Icon**: Carrot asset (`assets/icons/carrot.png`) over primary green background (`#53B175`)  
 > **Last Updated**: September 02, 2026  
 > **Framework**: Flutter 3.x (Dart SDK ^3.11.5)  
 > **State Management & Routing**: GetX Pattern  

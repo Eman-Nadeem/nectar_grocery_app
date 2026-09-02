@@ -359,16 +359,38 @@ class AuthController extends GetxController {
       isLoading.value = true;
       User? currentUser = _auth.currentUser;
 
-      if (currentUser == null &&
-          tempEmail.isNotEmpty &&
-          tempPassword.isNotEmpty) {
-        UserCredential userCredential = await _auth
-            .createUserWithEmailAndPassword(
-              email: tempEmail,
-              password: tempPassword,
-            )
-            .timeout(const Duration(seconds: 8));
-        currentUser = userCredential.user;
+      if (currentUser != null && tempEmail.isNotEmpty && tempPassword.isNotEmpty) {
+        // User is signed in via Phone Auth: link Email/Password credentials to allow Email login
+        try {
+          AuthCredential emailCred = EmailAuthProvider.credential(
+            email: tempEmail,
+            password: tempPassword,
+          );
+          await currentUser.linkWithCredential(emailCred);
+          debugPrint('[Auth] Successfully linked Email/Password credentials to Phone user!');
+        } on FirebaseAuthException catch (e) {
+          debugPrint('[Auth] Link credential error: ${e.code} - ${e.message}');
+          if (e.code == 'provider-already-linked' || e.code == 'credential-already-in-use') {
+            // Already linked or in use
+          } else {
+            try {
+              await currentUser.verifyBeforeUpdateEmail(tempEmail);
+            } catch (_) {}
+          }
+        }
+      } else if (currentUser == null && tempEmail.isNotEmpty && tempPassword.isNotEmpty) {
+        // User not yet signed in: Create user with Email & Password directly
+        try {
+          UserCredential userCredential = await _auth
+              .createUserWithEmailAndPassword(
+                email: tempEmail,
+                password: tempPassword,
+              )
+              .timeout(const Duration(seconds: 8));
+          currentUser = userCredential.user;
+        } catch (e) {
+          debugPrint('[Auth] Create email user error: $e');
+        }
       }
 
       if (currentUser != null) {
